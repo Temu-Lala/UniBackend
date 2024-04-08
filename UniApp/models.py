@@ -3,8 +3,8 @@ from django.contrib.auth import get_user_model
 
 
 class UniversityProfile(models.Model):
-    cover_photo = models.ImageField(upload_to='university_covers/', blank=True, null=True)
-    profile_photo = models.ImageField(upload_to='university_profiles/', blank=True, null=True)
+    cover_photo = models.ImageField(upload_to='static/university_covers/', blank=True, null=True)
+    profile_photo = models.ImageField(upload_to='static/university_profiles/', blank=True, null=True)
     name = models.CharField(max_length=255)
     username = models.CharField(max_length=100, unique=True)
     bio = models.TextField(blank=True)
@@ -22,8 +22,8 @@ class UniversityProfile(models.Model):
 
 
 class CampusProfile(models.Model):
-    cover_photo = models.ImageField(upload_to='campus_covers/', blank=True, null=True)
-    profile_photo = models.ImageField(upload_to='campus_profiles/', blank=True, null=True)
+    cover_photo = models.ImageField(upload_to='static/campus_covers/', blank=True, null=True)
+    profile_photo = models.ImageField(upload_to='static/campus_profiles/', blank=True, null=True)
     name = models.CharField(max_length=255)
     username = models.CharField(max_length=100, unique=True)
     bio = models.TextField(blank=True)
@@ -42,8 +42,8 @@ class CampusProfile(models.Model):
 
 
 class CollegeProfile(models.Model):
-    cover_photo = models.ImageField(upload_to='college_covers/', blank=True, null=True)
-    profile_photo = models.ImageField(upload_to='college_profiles/', blank=True, null=True)
+    cover_photo = models.ImageField(upload_to='static/college_covers/', blank=True, null=True)
+    profile_photo = models.ImageField(upload_to='static/college_profiles/', blank=True, null=True)
     name = models.CharField(max_length=255)
     username = models.CharField(max_length=100, unique=True)
     bio = models.TextField(blank=True)
@@ -62,8 +62,8 @@ class CollegeProfile(models.Model):
 
 
 class DepartmentProfile(models.Model):
-    cover_photo = models.ImageField(upload_to='department_covers/', blank=True, null=True)
-    profile_photo = models.ImageField(upload_to='department_profiles/', blank=True, null=True)
+    cover_photo = models.ImageField(upload_to='static/department_covers/', blank=True, null=True)
+    profile_photo = models.ImageField(upload_to='static/department_profiles/', blank=True, null=True)
     name = models.CharField(max_length=255)
     username = models.CharField(max_length=100, unique=True)
     bio = models.TextField(blank=True)
@@ -92,8 +92,8 @@ class UserProfile(models.Model):
     email = models.EmailField(unique=True)
     gender = models.CharField(max_length=1, choices=GENDER_CHOICES)
     age = models.PositiveIntegerField()
-    cover_photo = models.ImageField(upload_to='user_covers/', blank=True, null=True)
-    profile_photo = models.ImageField(upload_to='user_profiles/', blank=True, null=True)
+    cover_photo = models.ImageField(upload_to='static/user_covers/', blank=True, null=True)
+    profile_photo = models.ImageField(upload_to='static/user_profiles/', blank=True, null=True)
     link = models.URLField(blank=True)
     phone = models.CharField(max_length=15, blank=True, null=True)
 
@@ -126,7 +126,7 @@ class Message(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False)
     is_deleted = models.BooleanField(default=False)
-    media_file = models.FileField(upload_to='media/', blank=True, null=True)
+    media_file = models.FileField(upload_to='static/media/', blank=True, null=True)
 
     class Meta:
         ordering = ['timestamp']
@@ -160,10 +160,8 @@ class ChatMember(models.Model):
     
     
     
-    
-
 class LecturerCV(models.Model):
-    avatar = models.ImageField(upload_to='lecturer_avatars/', blank=True, null=True)
+    avatar = models.ImageField(upload_to='static/lecturer_avatars/', blank=True, null=True)
     name = models.CharField(max_length=255)
     department = models.CharField(max_length=255)
     location = models.CharField(max_length=255)
@@ -200,9 +198,7 @@ class LecturerCV(models.Model):
 
     def __str__(self):
         return self.name
-    
-    
-    
+
 
 
 
@@ -229,7 +225,7 @@ class MediaItem(models.Model):
     news = models.ForeignKey(News, on_delete=models.CASCADE, related_name='media_items')
     media_type = models.CharField(max_length=10, choices=NEWS_TYPE_CHOICES)
     content = models.TextField()
-    file = models.FileField(upload_to='news_media/', blank=True, null=True)
+    file = models.FileField(upload_to='static/news_media/', blank=True, null=True)
     likes = models.IntegerField(default=0)
     dislikes = models.IntegerField(default=0)
 
