@@ -1,7 +1,5 @@
-# serializers.py
-
 from rest_framework import serializers
-from .models import UniversityProfile, CampusProfile, CollegeProfile, DepartmentProfile, UserProfile, Chat, Message, MessageReaction, LecturerCV, News, MediaItem, MediaItemComment, MediaItemLike, MediaItemDislike
+from .models import UniversityProfile, CampusProfile, CollegeProfile, DepartmentProfile, LecturerCV, UserProfile, Post, Reaction, Comment, ChatRoom, Message
 
 class UniversityProfileSerializer(serializers.ModelSerializer):
     class Meta:
@@ -23,52 +21,37 @@ class DepartmentProfileSerializer(serializers.ModelSerializer):
         model = DepartmentProfile
         fields = '__all__'
 
-class UserProfileSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = UserProfile
-        fields = '__all__'
-
-class ChatSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Chat
-        fields = '__all__'
-
-class MessageSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Message
-        fields = '__all__'
-
-class MessageReactionSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = MessageReaction
-        fields = '__all__'
-
 class LecturerCVSerializer(serializers.ModelSerializer):
     class Meta:
         model = LecturerCV
         fields = '__all__'
 
-class NewsSerializer(serializers.ModelSerializer):
+class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
-        model = News
+        model = UserProfile
         fields = '__all__'
 
-class MediaItemSerializer(serializers.ModelSerializer):
+class PostSerializer(serializers.ModelSerializer):
     class Meta:
-        model = MediaItem
+        model = Post
         fields = '__all__'
 
-class MediaItemCommentSerializer(serializers.ModelSerializer):
+class ReactionSerializer(serializers.ModelSerializer):
     class Meta:
-        model = MediaItemComment
+        model = Reaction
         fields = '__all__'
 
-class MediaItemLikeSerializer(serializers.ModelSerializer):
+class CommentSerializer(serializers.ModelSerializer):
     class Meta:
-        model = MediaItemLike
+        model = Comment
         fields = '__all__'
 
-class MediaItemDislikeSerializer(serializers.ModelSerializer):
+class ChatRoomSerializer(serializers.ModelSerializer):
     class Meta:
-        model = MediaItemDislike
+        model = ChatRoom
+        fields = '__all__'
+
+class MessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Message
         fields = '__all__'

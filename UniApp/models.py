@@ -1,6 +1,16 @@
 from django.db import models
 from django.contrib.auth import get_user_model
+from django.db import models
+from django.contrib.auth.models import AbstractUser
+from django.utils.translation import gettext_lazy as _
+from django.contrib.auth.models import AbstractUser, BaseUserManager
+from uuid import uuid4
+from django.utils import timezone
 
+User = get_user_model()
+
+
+# Define custom related names for groups and user_permissions
 
 class UniversityProfile(models.Model):
     cover_photo = models.ImageField(upload_to='static/university_covers/', blank=True, null=True)
@@ -19,7 +29,6 @@ class UniversityProfile(models.Model):
 
     def __str__(self):
         return self.name
-
 
 class CampusProfile(models.Model):
     cover_photo = models.ImageField(upload_to='static/campus_covers/', blank=True, null=True)
@@ -40,7 +49,6 @@ class CampusProfile(models.Model):
     def __str__(self):
         return self.name
 
-
 class CollegeProfile(models.Model):
     cover_photo = models.ImageField(upload_to='static/college_covers/', blank=True, null=True)
     profile_photo = models.ImageField(upload_to='static/college_profiles/', blank=True, null=True)
@@ -56,10 +64,10 @@ class CollegeProfile(models.Model):
     about = models.TextField(blank=True)
     location = models.CharField(max_length=555)
     campus = models.ForeignKey(CampusProfile, on_delete=models.CASCADE)
+    university = models.ForeignKey(UniversityProfile, on_delete=models.CASCADE)
 
     def __str__(self):
         return self.name
-
 
 class DepartmentProfile(models.Model):
     cover_photo = models.ImageField(upload_to='static/department_covers/', blank=True, null=True)
@@ -76,90 +84,11 @@ class DepartmentProfile(models.Model):
     about = models.TextField(blank=True)
     location = models.CharField(max_length=555)
     college = models.ForeignKey(CollegeProfile, on_delete=models.CASCADE)
+    university = models.ForeignKey(UniversityProfile, on_delete=models.CASCADE)
 
     def __str__(self):
         return self.name
 
-class UserProfile(models.Model):
-    GENDER_CHOICES = [
-        ('M', 'Male'),
-        ('F', 'Female')
-        
-    ]
-
-    first_name = models.CharField(max_length=100)
-    last_name = models.CharField(max_length=100)
-    email = models.EmailField(unique=True)
-    gender = models.CharField(max_length=1, choices=GENDER_CHOICES)
-    age = models.PositiveIntegerField()
-    cover_photo = models.ImageField(upload_to='static/user_covers/', blank=True, null=True)
-    profile_photo = models.ImageField(upload_to='static/user_profiles/', blank=True, null=True)
-    link = models.URLField(blank=True)
-    phone = models.CharField(max_length=15, blank=True, null=True)
-
-    # Add any additional fields here
-
-    def __str__(self):
-        return f"{self.first_name} {self.last_name}"
-
-
-
-
-User = get_user_model()
-
-class Chat(models.Model):
-    title = models.CharField(max_length=255)
-    members = models.ManyToManyField(User, related_name='chats')
-    is_group_chat = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ['-created_at']
-
-    def __str__(self):
-        return self.title
-
-class Message(models.Model):
-    chat = models.ForeignKey(Chat, on_delete=models.CASCADE, related_name='messages')
-    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages')
-    content = models.TextField()
-    timestamp = models.DateTimeField(auto_now_add=True)
-    is_read = models.BooleanField(default=False)
-    is_deleted = models.BooleanField(default=False)
-    media_file = models.FileField(upload_to='static/media/', blank=True, null=True)
-
-    class Meta:
-        ordering = ['timestamp']
-
-    def __str__(self):
-        return f"{self.sender.username}: {self.content[:50]}"
-
-class MessageReaction(models.Model):
-    message = models.ForeignKey(Message, on_delete=models.CASCADE, related_name='reactions')
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    reaction = models.CharField(max_length=255)
-
-    class Meta:
-        unique_together = ('message', 'user')
-
-    def __str__(self):
-        return f"{self.user.username} reacted to message: {self.message.id}"
-
-class ChatMember(models.Model):
-    chat = models.ForeignKey(Chat, on_delete=models.CASCADE, related_name='chat_members')
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    joined_at = models.DateTimeField(auto_now_add=True)
-    is_admin = models.BooleanField(default=False)
-
-    class Meta:
-        unique_together = ('chat', 'user')
-
-    def __str__(self):
-        return f"{self.user.username} in {self.chat.title}"
-    
-    
-    
-    
 class LecturerCV(models.Model):
     avatar = models.ImageField(upload_to='static/lecturer_avatars/', blank=True, null=True)
     name = models.CharField(max_length=255)
@@ -195,62 +124,80 @@ class LecturerCV(models.Model):
     project_description2 = models.TextField(blank=True, null=True)
     project3 = models.CharField(max_length=255, blank=True, null=True)
     project_description3 = models.TextField(blank=True, null=True)
+    university = models.ForeignKey(UniversityProfile, on_delete=models.CASCADE)
 
     def __str__(self):
         return self.name
 
 
 
+class UserProfile(models.Model):
+    GENDER_CHOICES = [
+        ('M', 'Male'),
+        ('F', 'Female')
+    ]
+    name = models.CharField(max_length=255)
+    id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
 
-User = get_user_model()
+    gender = models.CharField(max_length=1, choices=GENDER_CHOICES)
+    age = models.PositiveIntegerField()
+    cover_photo = models.ImageField(upload_to='static/user_covers/', blank=True, null=True)
+    profile_photo = models.ImageField(upload_to='static/user_profiles/', blank=True, null=True)
+    link = models.URLField(blank=True)
+    phone = models.CharField(max_length=15, blank=True, null=True)
+    
+    def __str__(self):
+        return self.name
 
-class News(models.Model):
-    title = models.CharField(max_length=255)
-    date = models.DateTimeField(auto_now_add=True)
+class Post(models.Model):
+    NEWS_TYPE_CHOICES = [
+        ('UNIVERSITY', 'University News'),
+        ('CAMPUS', 'Campus News'),
+        ('COLLEGE', 'College News'),
+        ('DEPARTMENT', 'Department News'),
+    ]
+    id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
+    responding_to_post = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True)
+
+    news_type = models.CharField(max_length=20, choices=NEWS_TYPE_CHOICES)
+    university = models.ForeignKey(UniversityProfile, on_delete=models.CASCADE, blank=True, null=True)
+    campus = models.ForeignKey(CampusProfile, on_delete=models.CASCADE, blank=True, null=True)
+    college = models.ForeignKey(CollegeProfile, on_delete=models.CASCADE, blank=True, null=True)
+    department = models.ForeignKey(DepartmentProfile, on_delete=models.CASCADE, blank=True, null=True)
+    content = models.TextField()
+    file = models.FileField(upload_to='static/post_files/', blank=True, null=True)  # Change this as per your requirement
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
     likes = models.IntegerField(default=0)
     dislikes = models.IntegerField(default=0)
     shares = models.IntegerField(default=0)
-    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='owned_news')
-
     def __str__(self):
-        return self.title
+        return f"Post #{self.pk} - {self.get_news_type_display()}"
 
-class MediaItem(models.Model):
-    NEWS_TYPE_CHOICES = [
-        ('photo', 'Photo'),
-        ('video', 'Video'),
-        ('text', 'Text')
+class Reaction(models.Model):
+    REACTION_TYPES = [
+        ('L', 'Like'),
+        ('D', 'Dislike'),
+        ('H', 'Haha'), # Add more reaction types as needed
     ]
+    post = models.ForeignKey(Post, on_delete=models.CASCADE)
+    reaction_type = models.CharField(max_length=1, choices=REACTION_TYPES)
+    created_at = models.DateTimeField(default=timezone.now)
 
-    news = models.ForeignKey(News, on_delete=models.CASCADE, related_name='media_items')
-    media_type = models.CharField(max_length=10, choices=NEWS_TYPE_CHOICES)
-    content = models.TextField()
-    file = models.FileField(upload_to='static/news_media/', blank=True, null=True)
-    likes = models.IntegerField(default=0)
-    dislikes = models.IntegerField(default=0)
-
-    def __str__(self):
-        return f"{self.get_media_type_display()} for News: {self.news.title}"
-
-class MediaItemComment(models.Model):
-    media_item = models.ForeignKey(MediaItem, on_delete=models.CASCADE, related_name='comments')
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+class Comment(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
+    post = models.ForeignKey(Post, on_delete=models.CASCADE)
+    responding_to_comment = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True)
+    author = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(default=timezone.now)
     text = models.TextField()
-    avatar = models.ImageField(upload_to='comment_avatars/', blank=True, null=True)  # Added avatar field
-    date = models.DateTimeField(auto_now_add=True)
 
-    def __str__(self):
-        return f"Comment by {self.user.username} on {self.media_item}"
-class MediaItemLike(models.Model):
-    media_item = models.ForeignKey(MediaItem, on_delete=models.CASCADE, related_name='likes_relation')
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+class ChatRoom(models.Model):
+    name = models.CharField(max_length=255)
+    users = models.ManyToManyField(UserProfile, related_name='chat_rooms')
 
-    def __str__(self):
-        return f"{self.user.username} likes {self.media_item}"
-
-class MediaItemDislike(models.Model):
-    media_item = models.ForeignKey(MediaItem, on_delete=models.CASCADE, related_name='dislikes_relation')
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-
-    def __str__(self):
-        return f"{self.user.username} dislikes {self.media_item}"
+class Message(models.Model):
+    room = models.ForeignKey(ChatRoom, on_delete=models.CASCADE)
+    user = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)

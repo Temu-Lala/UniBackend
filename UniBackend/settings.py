@@ -40,6 +40,10 @@ INSTALLED_APPS = [
     'rest_framework',
     'UniApp',
     'corsheaders',
+    'tinymce',
+    'taggit',
+
+
 
 
 ]
