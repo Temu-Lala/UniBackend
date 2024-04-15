@@ -10,6 +10,16 @@ admin.site.register(LecturerCV)
 admin.site.register(UserProfile)
 admin.site.register(Post)
 admin.site.register(Reaction)
-admin.site.register(Comment)
 admin.site.register(ChatRoom)
 admin.site.register(Message)
+
+
+
+@admin.register(Comment)
+class CommentAdmin(admin.ModelAdmin):
+    list_display = ('author', 'body', 'created_on', 'active')
+    list_filter = ('active', 'created_on')
+    actions = ['approve_comments']
+
+    def approve_comments(self, request, queryset):
+        queryset.update(active=True)

@@ -185,12 +185,17 @@ class Reaction(models.Model):
     created_at = models.DateTimeField(default=timezone.now)
 
 class Comment(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
-    post = models.ForeignKey(Post, on_delete=models.CASCADE)
-    responding_to_comment = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True)
+    post = models.ForeignKey(Post,on_delete=models.CASCADE,related_name='comments')
     author = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
-    created_at = models.DateTimeField(default=timezone.now)
-    text = models.TextField()
+    body = models.TextField()
+    created_on = models.DateTimeField(auto_now_add=True)
+    active = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['created_on']
+
+def __str__(self):
+    return 'Comment "{}" by {}'.format(self.body, self.author)
 
 class ChatRoom(models.Model):
     name = models.CharField(max_length=255)
