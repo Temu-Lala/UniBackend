@@ -1,12 +1,24 @@
 from rest_framework import viewsets
-from .models import UniversityProfile, CampusProfile, CollegeProfile, DepartmentProfile, LecturerCV, UserProfile, Post, Reaction, Comment, ChatRoom, Message
-from .serializers import UniversityProfileSerializer, CampusProfileSerializer, CollegeProfileSerializer, DepartmentProfileSerializer, LecturerCVSerializer, UserProfileSerializer, PostSerializer, ReactionSerializer, CommentSerializer, ChatRoomSerializer, MessageSerializer
-from rest_framework.decorators import api_view
+from .models import UniversityProfile, CampusProfile, CollegeProfile, DepartmentProfile, LecturerCV, GustUser, Post, Reaction, Comment, ChatRoom, Message
+from .serializers import UniversityProfileSerializer, CampusProfileSerializer, CollegeProfileSerializer, DepartmentProfileSerializer, LecturerCVSerializer, GustUserSerializer, PostSerializer, ReactionSerializer, CommentSerializer, ChatRoomSerializer, MessageSerializer
+from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
+from rest_framework.decorators import api_view
+from django.contrib.auth import authenticate
+from .models import GustUser 
+from django.contrib.auth import authenticate
+from django.views.decorators.csrf import csrf_exempt
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+from rest_framework.status import (
+    HTTP_400_BAD_REQUEST,
+    HTTP_404_NOT_FOUND,
+    HTTP_200_OK
+)
+from rest_framework.views import APIView
+from django.contrib.auth import authenticate
 from rest_framework import status
-from .models import Post
-from .serializers import PostSerializer, CommentSerializer
-from django.shortcuts import get_object_or_404
+
 class UniversityProfileViewSet(viewsets.ModelViewSet):
     queryset = UniversityProfile.objects.all()
     serializer_class = UniversityProfileSerializer
@@ -27,9 +39,9 @@ class LecturerCVViewSet(viewsets.ModelViewSet):
     queryset = LecturerCV.objects.all()
     serializer_class = LecturerCVSerializer
 
-class UserProfileViewSet(viewsets.ModelViewSet):
-    queryset = UserProfile.objects.all()
-    serializer_class = UserProfileSerializer
+class GustUserViewSet(viewsets.ModelViewSet):
+    queryset = GustUser.objects.all()
+    serializer_class = GustUserSerializer
 
 class PostViewSet(viewsets.ModelViewSet):
     queryset = Post.objects.all()
@@ -51,20 +63,36 @@ class MessageViewSet(viewsets.ModelViewSet):
     queryset = Message.objects.all()
     serializer_class = MessageSerializer
 
-@api_view(['GET', 'POST'])
-def post_detail(request, slug):
-    try:
-        post = Post.objects.get(slug=slug)
-    except Post.DoesNotExist:
-        return Response(status=status.HTTP_404_NOT_FOUND)
+class LoginView(APIView):
+    def post(self, request):
+        username = request.data.get('username')
+        password = request.data.get('password')
+        try:
+            user = GustUser.objects.get(username=username)
+            if user.password == password: 
+                serializer = GustUserSerializer(user)
+                return Response(serializer.data)
+            else:
+                return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+        except GustUser.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
-    if request.method == 'GET':
-        serializer = PostSerializer(post)
-        return Response(serializer.data)
 
-    elif request.method == 'POST':
-        serializer = CommentSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save(post=post)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+# @api_view(['POST'])
+# def login(request):
+#     username = request.data.get('username')
+#     password = request.data.get('password')
+
+#     user = authenticate(username=username, password=password)
+#     if user:
+#         # User authenticated successfully
+#         token, created = Token.objects.get_or_create(user=user)
+#         return Response({'token': token.key})
+#     else:
+#         # Invalid credentials
+#         return Response({'error': 'Invalid credentials'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+

@@ -5,8 +5,12 @@ from django.contrib.auth.models import AbstractUser
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from uuid import uuid4
-from django.utils import timezone
+from django.contrib.auth.hashers import check_password
 
+from django.utils import timezone
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+from django.contrib.auth.decorators import login_required
 User = get_user_model()
 
 
@@ -130,22 +134,25 @@ class LecturerCV(models.Model):
         return self.name
 
 
-
-class UserProfile(models.Model):
+class GustUser(models.Model):
     GENDER_CHOICES = [
         ('M', 'Male'),
         ('F', 'Female')
     ]
     name = models.CharField(max_length=255)
     id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
-
+    username = models.CharField(max_length=150, unique=True)
+    email = models.EmailField(unique=True)  # Make email field unique
+    password = models.CharField(max_length=128)  # You may want to use a more secure password field like Django's built-in hashed password field
     gender = models.CharField(max_length=1, choices=GENDER_CHOICES)
     age = models.PositiveIntegerField()
     cover_photo = models.ImageField(upload_to='static/user_covers/', blank=True, null=True)
     profile_photo = models.ImageField(upload_to='static/user_profiles/', blank=True, null=True)
     link = models.URLField(blank=True)
     phone = models.CharField(max_length=15, blank=True, null=True)
-    
+
+
+
     def __str__(self):
         return self.name
 
@@ -185,24 +192,46 @@ class Reaction(models.Model):
     created_at = models.DateTimeField(default=timezone.now)
 
 class Comment(models.Model):
-    post = models.ForeignKey(Post,on_delete=models.CASCADE,related_name='comments')
-    author = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='comments')
+    author = models.ForeignKey(GustUser, on_delete=models.CASCADE)
     body = models.TextField()
-    created_on = models.DateTimeField(auto_now_add=True)
-    active = models.BooleanField(default=False)
+    created_on = models.DateTimeField(default=timezone.now)
 
     class Meta:
         ordering = ['created_on']
 
+@require_POST
+@login_required
+def add_comment(request):
+    data = request.POST
+    post_id = data.get('postId')
+    comment_text = data.get('commentText')
+    
+    if post_id and comment_text:
+        try:
+            post = Post.objects.get(pk=post_id)
+            comment = Comment.objects.create(post=post, author=request.GustUser, body=comment_text)
+            return JsonResponse({
+                'id': comment.id,
+                'body': comment.body,
+                'author': comment.author.username,
+                'created_on': comment.created_on.strftime("%Y-%m-%d %H:%M:%S")
+            })
+        except Post.DoesNotExist:
+            return JsonResponse({'error': 'Post does not exist'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    else:
+        return JsonResponse({'error': 'Invalid request'}, status=400)
 def __str__(self):
     return 'Comment "{}" by {}'.format(self.body, self.author)
 
 class ChatRoom(models.Model):
     name = models.CharField(max_length=255)
-    users = models.ManyToManyField(UserProfile, related_name='chat_rooms')
+    users = models.ManyToManyField(GustUser, related_name='chat_rooms')
 
 class Message(models.Model):
     room = models.ForeignKey(ChatRoom, on_delete=models.CASCADE)
-    user = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
+    user = models.ForeignKey(GustUser, on_delete=models.CASCADE)
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)

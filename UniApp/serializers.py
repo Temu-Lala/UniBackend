@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import UniversityProfile, CampusProfile, CollegeProfile, DepartmentProfile, LecturerCV, UserProfile, Post, Reaction, Comment, ChatRoom, Message
+from .models import UniversityProfile, CampusProfile, CollegeProfile, DepartmentProfile, LecturerCV, GustUser, Post, Reaction, Comment, ChatRoom, Message
 
 class UniversityProfileSerializer(serializers.ModelSerializer):
     class Meta:
@@ -26,9 +26,9 @@ class LecturerCVSerializer(serializers.ModelSerializer):
         model = LecturerCV
         fields = '__all__'
 
-class UserProfileSerializer(serializers.ModelSerializer):
+class GustUserSerializer(serializers.ModelSerializer):
     class Meta:
-        model = UserProfile
+        model = GustUser
         fields = '__all__'
 
 class PostSerializer(serializers.ModelSerializer):
