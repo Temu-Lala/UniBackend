@@ -18,6 +18,10 @@ from rest_framework.status import (
 from rest_framework.views import APIView
 from django.contrib.auth import authenticate
 from rest_framework import status
+from django.core.exceptions import ObjectDoesNotExist
+from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt import tokens
 
 class UniversityProfileViewSet(viewsets.ModelViewSet):
     queryset = UniversityProfile.objects.all()
@@ -63,23 +67,20 @@ class MessageViewSet(viewsets.ModelViewSet):
     queryset = Message.objects.all()
     serializer_class = MessageSerializer
 
+
 class LoginView(APIView):
+    permission_classes = (AllowAny,)
+    authentication_classes = ()
+
     def post(self, request):
-        username = request.data.get('username')
-        password = request.data.get('password')
         try:
-            user = GustUser.objects.get(username=username)
-            if user.password == password: 
-                serializer = GustUserSerializer(user)
-                return Response(serializer.data)
-            else:
-                return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
-        except GustUser.DoesNotExist:
-            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-
-
-
-
+            refresh_token = request.data["refresh"]
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+            return Response(status=status.HTTP_200_OK)
+        except (ObjectDoesNotExist, TokenError):
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        
 # @api_view(['POST'])
 # def login(request):
 #     username = request.data.get('username')

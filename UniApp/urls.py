@@ -18,5 +18,7 @@ router.register(r'messages', MessageViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
+    path("auth/", include("djoser.urls")),
+    path("auth/", include("djoser.urls.jwt")),
     path('login/', LoginView.as_view(), name='login'),
 ]

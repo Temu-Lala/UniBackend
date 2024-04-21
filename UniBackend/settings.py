@@ -41,6 +41,8 @@ INSTALLED_APPS = [
     'UniApp',
     'corsheaders',
     'tinymce',
+    "djoser",
+    "rest_framework_simplejwt.token_blacklist",
     'taggit',
     'rest_framework.authtoken'
 
@@ -80,21 +82,32 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'UniBackend.wsgi.application'
 
-REST_FRAMEWORK = {
-    # Use Django's standard `django.contrib.auth` permissions,
-    # or allow read-only access for unauthenticated users.
-'DEFAULT_PERMISSION_CLASSES': [
-   'rest_framework.permissions.AllowAny',
 
-]
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ),
+}
+
+SIMPLE_JWT = {
+    "AUTH_HEADER_TYPES": ("Bearer",),
+}
+
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
+DJOSER = {
+    "PASSWORD_RESET_CONFIRM_URL": "auth/password/reset-password-confirmation/?uid={uid}&token={token}",
+    "ACTIVATION_URL": "#/activate/{uid}/{token}",
+    "SEND_ACTIVATION_EMAIL": False,
+    "SERIALIZERS": {},
 }
 # CORS settings
 CORS_ALLOW_ALL_ORIGINS = True
 # CORS settings
 CORS_ALLOWED_ORIGINS = [
-    'http://localhost:3000',
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
 ]
-
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
