@@ -44,6 +44,8 @@ INSTALLED_APPS = [
     "djoser",
     "rest_framework_simplejwt.token_blacklist",
     'taggit',
+    'rest_framework_simplejwt',
+
     'rest_framework.authtoken'
 
 
@@ -52,12 +54,14 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
+    
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -82,10 +86,11 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'UniBackend.wsgi.application'
 
-
+AUTH_USER_MODEL = "UniApp.GustUser"
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
+        # "rest_framework_jwt.authentication.JSONWebTokenAuthentication"
     ),
 }
 
@@ -108,6 +113,20 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]
+
+
+
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:3000',"http://127.0.0.1:3000",
+]
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    # Add other allowed hosts as needed
+]
+CORS_ORIGIN_WHITELIST = [
+    'http://localhost:8000',
+]
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
@@ -117,7 +136,8 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
-
+CSRF_COOKIE_SECURE = True
+CSRF_COOKIE_HTTPONLY = True
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
 
@@ -141,13 +161,12 @@ AUTH_PASSWORD_VALIDATORS = [
 # https://docs.djangoproject.com/en/5.0/topics/i18n/
 
 LANGUAGE_CODE = 'en-us'
-
+APPEND_SLASH = False
 TIME_ZONE = 'UTC'
 
 USE_I18N = True
 
 USE_TZ = True
-
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
