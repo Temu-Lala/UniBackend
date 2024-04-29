@@ -42,17 +42,17 @@ INSTALLED_APPS = [
     'corsheaders',
     'tinymce',
     "djoser",
-    "rest_framework_simplejwt.token_blacklist",
-    'taggit',
     'rest_framework_simplejwt',
-
-    'rest_framework.authtoken'
 
 
 
 
 ]
-
+from datetime import timedelta
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=555),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+}
 MIDDLEWARE = [
     
     'django.middleware.security.SecurityMiddleware',
@@ -88,24 +88,22 @@ WSGI_APPLICATION = 'UniBackend.wsgi.application'
 
 AUTH_USER_MODEL = "UniApp.GustUser"
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
-        # "rest_framework_jwt.authentication.JSONWebTokenAuthentication"
-    ),
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ],
 }
-
 SIMPLE_JWT = {
-    "AUTH_HEADER_TYPES": ("Bearer",),
+    'AUTH_HEADER_TYPES': ('Bearer',),
 }
+# EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-
-DJOSER = {
-    "PASSWORD_RESET_CONFIRM_URL": "auth/password/reset-password-confirmation/?uid={uid}&token={token}",
-    "ACTIVATION_URL": "#/activate/{uid}/{token}",
-    "SEND_ACTIVATION_EMAIL": False,
-    "SERIALIZERS": {},
-}
+# DJOSER = {
+#     "PASSWORD_RESET_CONFIRM_URL": "auth/password/reset-password-confirmation/?uid={uid}&token={token}",
+#     "ACTIVATION_URL": "#/activate/{uid}/{token}",
+#     "SEND_ACTIVATION_EMAIL": False,
+#     "SERIALIZERS": {},
+# }
 # CORS settings
 CORS_ALLOW_ALL_ORIGINS = True
 # CORS settings
@@ -113,7 +111,6 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]
-
 
 
 CSRF_TRUSTED_ORIGINS = [
@@ -127,6 +124,10 @@ ALLOWED_HOSTS = [
 CORS_ORIGIN_WHITELIST = [
     'http://localhost:8000',
 ]
+
+CORS_ALLOW_CREDENTIALS = True
+
+
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 

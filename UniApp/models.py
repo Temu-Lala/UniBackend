@@ -6,6 +6,7 @@ from uuid import uuid4
 from rest_framework.authtoken.models import Token
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
+from django.utils import timezone
 
 class GustUser(AbstractUser):
     GENDER_CHOICES = [
@@ -18,6 +19,14 @@ class GustUser(AbstractUser):
     def __str__(self):
         return self.username
 
+class JWTToken(models.Model):
+    user = models.ForeignKey(GustUser, on_delete=models.CASCADE)
+    token = models.TextField(unique=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return f"Token for {self.user.username}"
+
 class BaseComment(models.Model):
     author = models.ForeignKey(GustUser, on_delete=models.CASCADE)
     body = models.TextField()
@@ -29,12 +38,16 @@ class BaseComment(models.Model):
 
     def __str__(self):
         return 'Comment "{}" by {}'.format(self.body, self.author)
-
 class UniversityProfile(models.Model):
+    STATUS_CHOICES = (
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    )
+
     cover_photo = models.ImageField(upload_to='static/university_covers/', blank=True, null=True)
     profile_photo = models.ImageField(upload_to='static/university_profiles/', blank=True, null=True)
-    username = models.CharField(max_length=150, unique=True)
-    password = models.CharField(max_length=128)
+  
     name = models.CharField(max_length=255)
     bio = models.TextField(blank=True)
     link = models.URLField(blank=True)
@@ -46,6 +59,8 @@ class UniversityProfile(models.Model):
     about = models.TextField(blank=True)
     location = models.CharField(max_length=555)
     group = models.ForeignKey(Group, on_delete=models.CASCADE)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')  # Add status field
+    user = models.ForeignKey(GustUser, on_delete=models.CASCADE)
 
     def __str__(self):
         return self.name
@@ -68,7 +83,8 @@ class CampusProfile(models.Model):
 
     def __str__(self):
         return self.name
-
+class stortoken(models.Model):
+    jwttokens = models.CharField(max_length=500)
 class CollegeProfile(models.Model):
     cover_photo = models.ImageField(upload_to='static/college_covers/', blank=True, null=True)
     profile_photo = models.ImageField(upload_to='static/college_profiles/', blank=True, null=True)

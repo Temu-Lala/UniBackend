@@ -6,7 +6,20 @@ from .models import (
     BaseComment
 )
 
-admin.site.register(UniversityProfile)
+def approve_selected_universities(modeladmin, request, queryset):
+    queryset.update(status='approved')
+
+def reject_selected_universities(modeladmin, request, queryset):
+    queryset.update(status='rejected')
+
+approve_selected_universities.short_description = "Approve selected universities"
+reject_selected_universities.short_description = "Reject selected universities"
+
+@admin.register(UniversityProfile)
+class UniversityProfileAdmin(admin.ModelAdmin):
+    list_display = ['name', 'status']
+    actions = [approve_selected_universities, reject_selected_universities]
+
 admin.site.register(CampusProfile)
 admin.site.register(CollegeProfile)
 admin.site.register(DepartmentProfile)
@@ -38,4 +51,3 @@ class UniversityPostAdmin(admin.ModelAdmin):
 @admin.register(DepartmentPost)
 class DepartmentPostAdmin(admin.ModelAdmin):
     list_display = ('id', 'university', 'campus', 'college', 'department', 'content', 'created_at', 'updated_at')
-

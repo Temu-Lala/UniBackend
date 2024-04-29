@@ -1,8 +1,9 @@
 from rest_framework import serializers
-from .models import UniversityProfile,BasePost, CampusProfile, CollegeProfile, DepartmentProfile, LecturerCV, GustUser, Reaction, Comment, ChatRoom, Message, CollegePost, CampusPost, UniversityPost, DepartmentPost
+from .models import UniversityProfile,BasePost,stortoken, CampusProfile, CollegeProfile, DepartmentProfile, LecturerCV, GustUser, Reaction, Comment, ChatRoom, Message, CollegePost, CampusPost, UniversityPost, DepartmentPost
 from rest_framework.authtoken.models import Token
 from rest_framework.serializers import ModelSerializer
 from django.contrib.auth.models import User
+from .models import JWTToken
 
 class UniversityProfileSerializer(serializers.ModelSerializer):
     class Meta:
@@ -38,22 +39,19 @@ class CustomUserSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'email', 'password', 'first_name', 'last_name', 'gender', 'age']  # Add other fields as needed
         read_only_fields = ['id']  # ID field should be read-only
 
-    def create(self, validated_data):
-        return GustUser.objects.create_user(**validated_data)
-
-class UserSerializer(ModelSerializer):
+class JWTTokenSerializer(serializers.ModelSerializer):
     class Meta:
-        model = User
-        fields = ['id', 'username', 'email', 'password']
-
-    def create(self, validated_data):
-        user = User.objects.create_user(**validated_data)
-        token = Token.objects.create(user=user)
-        return user
+        model = JWTToken
+        fields = ('id', 'user', 'token', 'created_at')
+        read_only_fields = ('id', 'created_at')
 
 class ReactionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Reaction
+        fields = '__all__'
+class TokenSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = stortoken
         fields = '__all__'
 
 class CommentSerializer(serializers.ModelSerializer):
