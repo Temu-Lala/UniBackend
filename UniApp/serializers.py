@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import UniversityProfile,BasePost,stortoken, CampusProfile, CollegeProfile, DepartmentProfile, LecturerCV, GustUser, Reaction, Comment, ChatRoom, Message, CollegePost, CampusPost, UniversityPost, DepartmentPost
+from .models import UniversityProfile,BasePost,stortoken,IntegrationRequest, CampusProfile, CollegeProfile, DepartmentProfile, LecturerCV, GustUser, Reaction, Comment, ChatRoom, Message, CollegePost, CampusPost, UniversityPost, DepartmentPost
 from rest_framework.authtoken.models import Token
 from rest_framework.serializers import ModelSerializer
 from django.contrib.auth.models import User
@@ -16,11 +16,11 @@ class CampusProfileSerializer(serializers.ModelSerializer):
         model = CampusProfile
         fields = '__all__'
 
+
 class CollegeProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = CollegeProfile
         fields = '__all__'
-
 class DepartmentProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = DepartmentProfile
@@ -67,7 +67,7 @@ class ChatRoomSerializer(serializers.ModelSerializer):
 class MessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message
-        fields = '__all__'
+        fields = ['id', 'content', 'sender', 'recipient', 'created_at']
 
 class BasePostSerializer(serializers.ModelSerializer):
     class Meta:
@@ -89,3 +89,7 @@ class UniversityPostSerializer(BasePostSerializer):
 class DepartmentPostSerializer(BasePostSerializer):
     class Meta(BasePostSerializer.Meta):
         model = DepartmentPost
+class IntegrationRequestSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = IntegrationRequest
+        fields = '__all__'

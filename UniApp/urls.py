@@ -4,7 +4,7 @@ from .views import UniversityProfileViewSet, CampusProfileViewSet, CollegeProfil
 from . import views
 from .views import UniversityProfileViewSet, CampusProfileViewSet, CollegeProfileViewSet, DepartmentProfileViewSet, LecturerCVViewSet, GustUserViewSet,  ReactionViewSet, CommentViewSet, ChatRoomViewSet, MessageViewSet  # Modify this line
 from .views import UniversityProfileViewSet, CampusProfileViewSet, CollegeProfileViewSet, DepartmentProfileViewSet, LecturerCVViewSet, GustUserViewSet, CollegePostViewSet, CampusPostViewSet, UniversityPostViewSet, DepartmentPostViewSet, ReactionViewSet, CommentViewSet, ChatRoomViewSet, MessageViewSet
-from .views import add_comment,lecturer_cv_create,college_profiles_create,department_profiles_create,campus_profiles_create,update_user_profile
+from .views import add_comment,create_lecturer_cv,college_profiles_create,department_profiles_create,campus_profiles_create,update_user_profile,manage_integration_requests,send_integration_request,create_lecturer_cv
 from rest_framework_simplejwt import views as jwt_views
 from .views import login
 from .views import edit_comment
@@ -14,7 +14,6 @@ router.register(r'university-profiles', UniversityProfileViewSet)
 router.register(r'campus-profiles', CampusProfileViewSet)
 router.register(r'college-profiles', CollegeProfileViewSet)
 router.register(r'department-profiles', DepartmentProfileViewSet)
-router.register(r'lecturer-cvs', LecturerCVViewSet)
 router.register(r'GustUser', GustUserViewSet)
 router.register(r'college-posts', CollegePostViewSet)
 router.register(r'campus-posts', CampusPostViewSet)
@@ -23,7 +22,7 @@ router.register(r'department-posts', DepartmentPostViewSet)
 router.register(r'reactions', ReactionViewSet)
 router.register(r'comments', CommentViewSet)
 router.register(r'chat-rooms', ChatRoomViewSet)
-router.register(r'messages', MessageViewSet)
+router.register(r'messages', MessageViewSet, basename='message')
 
 urlpatterns = [
     path('', include(router.urls)),
@@ -34,7 +33,7 @@ urlpatterns = [
     path('user-profile/', views.user_profile),
     path('add-comment/', add_comment, name='add_comment'),
     path('groups/', views.group_list, name='groups'),
-    path('lecturer-cv/', lecturer_cv_create, name='lecturer_cv_create'),  # Add your custom view URL
+    path('lecturer-cv/', create_lecturer_cv, name='lecturer_cv_create'),  # Add your custom view URL
     path('college_profiles/', college_profiles_create, name='college_profiles_create'),  # Add your custom view URL
     path('department_profiles/', department_profiles_create, name='department_profiles_create'),  # Add your custom view URL
     path('campus_profiles/', campus_profiles_create, name='campus_profiles_create'),  # Add your custom view URL
@@ -43,7 +42,19 @@ urlpatterns = [
     path('api/token/refresh/', jwt_views.TokenRefreshView.as_view(), name='token_refresh'),
     path('login/', login.as_view(), name='login'),
     path('comments/<int:comment_id>/edit/', edit_comment, name='edit_comment'),
-
-    # path('register/', UniversityRegisterView.as_view()),  # Endpoint for university registration
+       # URL pattern for sending integration requests
+    path('integration_requests/', views.send_integration_request, name='send-integration-request'),
+    # path('university-profiles/<int:university_profile_id>/campus_profiles/', campus_profiles_create),
+    # URL pattern for university profile owners to manage integration requests
+    path('manage_integration_requests/', views.manage_integration_requests, name='manage-integration-requests'),# path('register/', UniversityRegisterView.as_view()),  # Endpoint for university registration
     # path('Universitylogin/', UniversityLoginView.as_view(), name='organization_login'),
+    # path('create-college-profile/', college_profiles_create, name='create_college_profile'),
+    path('university-profiles/<int:university_profile_id>/campus-profiles/', views.fetch_campus_profiles, name='fetch_campus_profiles'),
+    path('university-profiles/<int:university_profile_id>/campus-profiles/', views.fetch_campus_profiles, name='fetch_campus_profiles'),
+    path('campus-profiles/<int:campus_profile_id>/college-profiles/', views.fetch_college_profiles, name='fetch_college_profiles'),
+    path('create-lecturer-cv/', views.create_lecturer_cv, name='create_lecturer_cv'),
+    path('college-profiles/<int:college_profile_id>/department-profiles/', views.fetch_department_profiles),
+    path('lecturer-cv/', views.create_lecturer_cv, name='create_lecturer_cv'),
+
+
 ]

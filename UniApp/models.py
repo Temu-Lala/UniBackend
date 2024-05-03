@@ -80,6 +80,7 @@ class CampusProfile(models.Model):
     location = models.CharField(max_length=555)
     university = models.ForeignKey(UniversityProfile, on_delete=models.CASCADE)
     group = models.ForeignKey(Group, on_delete=models.CASCADE)
+    user = models.ForeignKey(GustUser, on_delete=models.CASCADE)
 
     def __str__(self):
         return self.name
@@ -99,7 +100,8 @@ class CollegeProfile(models.Model):
     about = models.TextField(blank=True)
     location = models.CharField(max_length=555)
     campus = models.ForeignKey(CampusProfile, on_delete=models.CASCADE)
-    university = models.ForeignKey(UniversityProfile, on_delete=models.CASCADE)
+    university  = models.ForeignKey(UniversityProfile, on_delete=models.CASCADE)
+    user = models.ForeignKey(GustUser, on_delete=models.CASCADE)
 
     def __str__(self):
         return self.name
@@ -119,14 +121,16 @@ class DepartmentProfile(models.Model):
     location = models.CharField(max_length=555)
     college = models.ForeignKey(CollegeProfile, on_delete=models.CASCADE)
     university = models.ForeignKey(UniversityProfile, on_delete=models.CASCADE)
+    user = models.ForeignKey(GustUser, on_delete=models.CASCADE)
+    campus = models.ForeignKey(CampusProfile, on_delete=models.CASCADE)
 
     def __str__(self):
         return self.name
 
+
 class LecturerCV(models.Model):
     avatar = models.ImageField(upload_to='static/lecturer_avatars/', blank=True, null=True)
     name = models.CharField(max_length=255)
-    department = models.CharField(max_length=255)
     location = models.CharField(max_length=255)
     job_title = models.CharField(max_length=255)
     skills1 = models.CharField(max_length=255)
@@ -158,12 +162,40 @@ class LecturerCV(models.Model):
     project_description2 = models.TextField(blank=True, null=True)
     project3 = models.CharField(max_length=255, blank=True, null=True)
     project_description3 = models.TextField(blank=True, null=True)
+    user = models.ForeignKey(GustUser, on_delete=models.CASCADE)
+    university_profile = models.ForeignKey(UniversityProfile, on_delete=models.CASCADE)
+    campus_profile = models.ForeignKey(CampusProfile, on_delete=models.CASCADE)
+    college_profile = models.ForeignKey(CollegeProfile, on_delete=models.CASCADE)
+    department_profile = models.ForeignKey(DepartmentProfile, on_delete=models.CASCADE)
 
     def __str__(self):
         return self.name
 
-    def generate_token(self):
-        return Token.objects.create(user=self)
+
+
+class IntegrationRequest(models.Model):
+    STATUS_CHOICES = (
+        ('pending', 'Pending'),
+        ('accepted', 'Accepted'),
+        ('rejected', 'Rejected'),
+    )
+    campus = models.ForeignKey(CampusProfile, on_delete=models.CASCADE)
+    university = models.ForeignKey(UniversityProfile, on_delete=models.CASCADE)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+
+    def __str__(self):
+        return f"Integration request from {self.campus.name} to {self.university.name}"
+
+
+
+
+
+
+
+
+
+
+
 
 class BasePost(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
@@ -228,8 +260,9 @@ class ChatRoom(models.Model):
     name = models.CharField(max_length=255)
     users = models.ManyToManyField(GustUser, related_name='chat_rooms')
 
+
 class Message(models.Model):
-    room = models.ForeignKey(ChatRoom, on_delete=models.CASCADE)
-    user = models.ForeignKey(GustUser, on_delete=models.CASCADE)
     content = models.TextField()
+    sender = models.ForeignKey(GustUser, related_name='sent_messages', on_delete=models.CASCADE)
+    recipient = models.ForeignKey(GustUser, related_name='received_messages', on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)

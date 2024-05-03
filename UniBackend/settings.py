@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'tinymce',
     "djoser",
     'rest_framework_simplejwt',
+    'channels',
 
 
 
