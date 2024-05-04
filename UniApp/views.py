@@ -217,6 +217,9 @@ def add_comment(request):
         elif post_type == 'department':
             from .models import DepartmentPost
             post_model = DepartmentPost
+        elif post_type == 'lecturer':
+            from .models import LecturerPost
+            post_model = LecturerPost
 
         if post_model is None:
             return Response({'error': 'Invalid post type'}, status=status.HTTP_400_BAD_REQUEST)

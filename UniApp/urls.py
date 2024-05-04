@@ -15,6 +15,8 @@ router.register(r'campus-profiles', CampusProfileViewSet)
 router.register(r'college-profiles', CollegeProfileViewSet)
 router.register(r'department-profiles', DepartmentProfileViewSet)
 router.register(r'GustUser', GustUserViewSet)
+# router.register(r'lecturer-cv', LecturerCVViewSet)
+
 router.register(r'college-posts', CollegePostViewSet)
 router.register(r'campus-posts', CampusPostViewSet)
 router.register(r'university-posts', UniversityPostViewSet)
@@ -33,7 +35,7 @@ urlpatterns = [
     path('user-profile/', views.user_profile),
     path('add-comment/', add_comment, name='add_comment'),
     path('groups/', views.group_list, name='groups'),
-    path('lecturer-cv/', create_lecturer_cv, name='lecturer_cv_create'),  # Add your custom view URL
+    # path('lecturer-cv/', create_lecturer_cv, name='lecturer_cv_create'),  # Add your custom view URL
     path('college_profiles/', college_profiles_create, name='college_profiles_create'),  # Add your custom view URL
     path('department_profiles/', department_profiles_create, name='department_profiles_create'),  # Add your custom view URL
     path('campus_profiles/', campus_profiles_create, name='campus_profiles_create'),  # Add your custom view URL
@@ -52,9 +54,9 @@ urlpatterns = [
     path('university-profiles/<int:university_profile_id>/campus-profiles/', views.fetch_campus_profiles, name='fetch_campus_profiles'),
     path('university-profiles/<int:university_profile_id>/campus-profiles/', views.fetch_campus_profiles, name='fetch_campus_profiles'),
     path('campus-profiles/<int:campus_profile_id>/college-profiles/', views.fetch_college_profiles, name='fetch_college_profiles'),
-    path('create-lecturer-cv/', views.create_lecturer_cv, name='create_lecturer_cv'),
+    # path('create-lecturer-cv/', views.create_lecturer_cv, name='create_lecturer_cv'),
     path('college-profiles/<int:college_profile_id>/department-profiles/', views.fetch_department_profiles),
-    path('lecturer-cv/', views.create_lecturer_cv, name='create_lecturer_cv'),
+    path('create-lecturer-cv/', create_lecturer_cv, name='create_lecturer_cv'),
 
 
 ]

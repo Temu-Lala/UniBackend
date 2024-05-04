@@ -203,6 +203,8 @@ class BasePost(models.Model):
     campus = models.ForeignKey(CampusProfile, on_delete=models.CASCADE, blank=True, null=True)
     college = models.ForeignKey(CollegeProfile, on_delete=models.CASCADE, blank=True, null=True)
     department = models.ForeignKey(DepartmentProfile, on_delete=models.CASCADE, blank=True, null=True)
+    lecturer = models.ForeignKey(LecturerCV, on_delete=models.CASCADE, blank=True, null=True)
+
     content = models.TextField()
     file = models.FileField(upload_to='static/post_files/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -227,6 +229,9 @@ class UniversityPost(BasePost):
     responding_to_post = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True)
 
 class DepartmentPost(BasePost):
+    responding_to_post = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True)
+
+class LecturerPost(BasePost):
     responding_to_post = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True)
 
 class Reaction(models.Model):
