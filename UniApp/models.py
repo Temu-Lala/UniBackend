@@ -198,13 +198,15 @@ class IntegrationRequest(models.Model):
 
 
 class BasePost(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
+    id = models.AutoField(primary_key=True)
     university = models.ForeignKey(UniversityProfile, on_delete=models.CASCADE, blank=True, null=True)
     campus = models.ForeignKey(CampusProfile, on_delete=models.CASCADE, blank=True, null=True)
     college = models.ForeignKey(CollegeProfile, on_delete=models.CASCADE, blank=True, null=True)
     department = models.ForeignKey(DepartmentProfile, on_delete=models.CASCADE, blank=True, null=True)
     lecturer = models.ForeignKey(LecturerCV, on_delete=models.CASCADE, blank=True, null=True)
 
+    title = models.CharField(max_length=255, null=True)
+    link = models.URLField(blank=True, null=True)
     content = models.TextField()
     file = models.FileField(upload_to='static/post_files/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -212,6 +214,7 @@ class BasePost(models.Model):
     likes = models.IntegerField(default=0)
     dislikes = models.IntegerField(default=0)
     shares = models.IntegerField(default=0)
+    user = models.ForeignKey(GustUser, on_delete=models.CASCADE)
 
     def __str__(self):
         return f"Post #{self.pk}"
@@ -249,14 +252,15 @@ class Reaction(models.Model):
 
 class Comment(models.Model):
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
-    object_id = models.UUIDField()
-    post = GenericForeignKey('content_type', 'object_id')
+    post_id = models.PositiveIntegerField()  # Change this to match the field name in BasePost
+    post = GenericForeignKey('content_type', 'post_id')  # Change 'object_id' to 'post_id'
     author = models.ForeignKey(GustUser, on_delete=models.CASCADE)
     body = models.TextField()
     created_on = models.DateTimeField(default=timezone.now)
 
     class Meta:
         ordering = ['created_on']
+
 
     def __str__(self):
         return 'Comment "{}" by {}'.format(self.body, self.author)

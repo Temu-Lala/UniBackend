@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import UniversityProfileViewSet, CampusProfileViewSet, CollegeProfileViewSet, DepartmentProfileViewSet, LecturerCVViewSet, GustUserViewSet, ReactionViewSet, CommentViewSet, ChatRoomViewSet, MessageViewSet
+from .views import UniversityProfileViewSet, CampusProfileViewSet, CollegeProfileViewSet, DepartmentProfileViewSet, LecturerCVViewSet, GustUserViewSet, ReactionViewSet, CommentViewSet, ChatRoomViewSet, MessageViewSet,LecturerPostViewSet
 from . import views
 from .views import UniversityProfileViewSet, CampusProfileViewSet, CollegeProfileViewSet, DepartmentProfileViewSet, LecturerCVViewSet, GustUserViewSet,  ReactionViewSet, CommentViewSet, ChatRoomViewSet, MessageViewSet  # Modify this line
 from .views import UniversityProfileViewSet, CampusProfileViewSet, CollegeProfileViewSet, DepartmentProfileViewSet, LecturerCVViewSet, GustUserViewSet, CollegePostViewSet, CampusPostViewSet, UniversityPostViewSet, DepartmentPostViewSet, ReactionViewSet, CommentViewSet, ChatRoomViewSet, MessageViewSet
@@ -8,6 +8,8 @@ from .views import add_comment,create_lecturer_cv,college_profiles_create,depart
 from rest_framework_simplejwt import views as jwt_views
 from .views import login
 from .views import edit_comment
+from .views import create_post,delete_post,get_lecturer_cvs,update_lecturer_cv
+
 
 router = DefaultRouter()
 router.register(r'university-profiles', UniversityProfileViewSet)
@@ -16,7 +18,7 @@ router.register(r'college-profiles', CollegeProfileViewSet)
 router.register(r'department-profiles', DepartmentProfileViewSet)
 router.register(r'GustUser', GustUserViewSet)
 # router.register(r'lecturer-cv', LecturerCVViewSet)
-
+router.register(r'lecturer-posts', LecturerPostViewSet)
 router.register(r'college-posts', CollegePostViewSet)
 router.register(r'campus-posts', CampusPostViewSet)
 router.register(r'university-posts', UniversityPostViewSet)
@@ -25,6 +27,8 @@ router.register(r'reactions', ReactionViewSet)
 router.register(r'comments', CommentViewSet)
 router.register(r'chat-rooms', ChatRoomViewSet)
 router.register(r'messages', MessageViewSet, basename='message')
+router.register(r'lecturer-cv', LecturerCVViewSet, basename='LecturerCV')
+
 
 urlpatterns = [
     path('', include(router.urls)),
@@ -57,6 +61,11 @@ urlpatterns = [
     # path('create-lecturer-cv/', views.create_lecturer_cv, name='create_lecturer_cv'),
     path('college-profiles/<int:college_profile_id>/department-profiles/', views.fetch_department_profiles),
     path('create-lecturer-cv/', create_lecturer_cv, name='create_lecturer_cv'),
-
+    path('create-post/', create_post, name='create_post'),
+    path('delete-post/<int:post_id>/', delete_post, name='delete_post'),
+    path('get_lecturer_cvs/', get_lecturer_cvs, name='get_lecturer_cvs'),
+    path('lecturer-cv/update/<int:pk>/', update_lecturer_cv, name='update_lecturer_cv'),
+    path('lecturer-cv/delete/<int:pk>/', views.delete_lecturer_cv, name='delete_lecturer_cv'),
+    path('university-profiles/<int:pk>/', views.university_profile_detail, name='universityprofile-detail'),
 
 ]

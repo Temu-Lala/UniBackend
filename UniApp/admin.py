@@ -3,7 +3,7 @@ from .models import (
     UniversityProfile, CampusProfile, CollegeProfile, DepartmentProfile, 
     LecturerCV, GustUser, Reaction, Comment, ChatRoom, Message, 
     CollegePost, CampusPost, UniversityPost, DepartmentPost, 
-    BaseComment
+    BaseComment, LecturerPost
 )
 
 def approve_selected_universities(modeladmin, request, queryset):
@@ -51,3 +51,7 @@ class UniversityPostAdmin(admin.ModelAdmin):
 @admin.register(DepartmentPost)
 class DepartmentPostAdmin(admin.ModelAdmin):
     list_display = ('id', 'university', 'campus', 'college', 'department', 'content', 'created_at', 'updated_at')
+
+@admin.register(LecturerPost)
+class LecturerPostAdmin(admin.ModelAdmin):
+    list_display = ('id', 'university', 'campus', 'college', 'department', 'lecturer', 'content', 'created_at', 'updated_at')  

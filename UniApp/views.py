@@ -17,14 +17,14 @@ from django.views.decorators.csrf import csrf_exempt
 from .models import (
     UniversityProfile, CampusProfile, CollegeProfile, DepartmentProfile,
     LecturerCV, GustUser, Reaction, Comment, ChatRoom, Message,
-    CollegePost, CampusPost, UniversityPost, DepartmentPost,stortoken,IntegrationRequest
+    CollegePost, CampusPost, UniversityPost, DepartmentPost,stortoken,IntegrationRequest,LecturerPost
 )
 from .serializers import (
     UniversityProfileSerializer, CampusProfileSerializer, CollegeProfileSerializer,
     DepartmentProfileSerializer, LecturerCVSerializer, CustomUserSerializer,
     ReactionSerializer, CommentSerializer, ChatRoomSerializer, MessageSerializer,
     CollegePostSerializer, CampusPostSerializer, UniversityPostSerializer,
-    DepartmentPostSerializer,TokenSerializer,IntegrationRequestSerializer
+    DepartmentPostSerializer,TokenSerializer,IntegrationRequestSerializer,LecturerPostSerializer
 )
 from django.contrib.auth.models import User
 from django.contrib.auth.hashers import check_password
@@ -60,7 +60,10 @@ class DepartmentProfileViewSet(viewsets.ModelViewSet):
 class LecturerCVViewSet(viewsets.ModelViewSet):
     queryset = LecturerCV.objects.all()
     serializer_class = LecturerCVSerializer
-
+class LecturerPostViewSet(viewsets.ModelViewSet):
+    queryset = LecturerPost.objects.all()
+    serializer_class = LecturerPostSerializer
+ 
 class CollegePostViewSet(viewsets.ModelViewSet):
     queryset = CollegePost.objects.all()
     serializer_class = CollegePostSerializer
@@ -146,6 +149,10 @@ class MessageViewSet(viewsets.ModelViewSet):
             return Response(serializer.data, status=status.HTTP_200_OK)
         else:
             return Response({"error": "Sender ID and Recipient ID are required."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        
+        
+
 class login(APIView):
     def post(self, request):
         username = request.data.get('username')
@@ -173,9 +180,9 @@ class login(APIView):
         return Response({'success': True, 'token': token}, status=status.HTTP_200_OK)
  
    
-   
-   
-@api_view(['POST'])
+    
+
+@api_view(['POST','GET'])
 @permission_classes([IsAuthenticated])
 def add_comment(request):
     """
@@ -201,7 +208,6 @@ def add_comment(request):
     try:
         # Retrieve user from JWT token
         user = request.user
-        print (user)
 
         # Determine the type of post and retrieve it
         post_model = None
@@ -228,14 +234,12 @@ def add_comment(request):
 
         # Create the comment for the post
         comment = Comment.objects.create(post=post, author=user, body=comment_text)
-        user = GustUser.objects.get(id=user_id)
-        print(user.first_name)
 
         # Return the username of the comment author along with other comment details
         return Response({
             'id': comment.id,
             'body': comment.body,
-            'author': user.first_name,  # Return username instead of user object
+            'author': user.username,  # Return username instead of user object
             'created_on': comment.created_on.strftime("%Y-%m-%d %H:%M:%S")
         }, status=status.HTTP_201_CREATED)
     except post_model.DoesNotExist:
@@ -243,13 +247,7 @@ def add_comment(request):
     except Exception as e:
         print(f"An error occurred: {e}")  # Log the error for debugging
         return Response({'error': 'Internal server error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-   
-   
-   
-   
-   
-   
-   
+
 @api_view(['GET', 'PUT'])
 @permission_classes([IsAuthenticated])
 def edit_comment(request, comment_id):
@@ -321,7 +319,6 @@ def edit_comment(request, comment_id):
         except Exception as e:
             print(f"An error occurred: {e}")
             return Response({'error': 'Internal server error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-   
 
 @api_view(["POST"])
 def signup(request):
@@ -538,7 +535,7 @@ def campus_profiles_for_university(request, university_profile_id):
 
 
 
-@api_view(['POST'])
+@api_view(['POST', 'PUT'])
 @permission_classes([IsAuthenticated])
 def create_lecturer_cv(request):
     try:
@@ -586,6 +583,20 @@ def create_lecturer_cv(request):
 
 
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_lecturer_cvs(request):
+    try:
+        # Retrieve all LecturerCV instances
+        lecturer_cvs = LecturerCV.objects.all()
+
+        # Serialize the data
+        serializer = LecturerCVSerializer(lecturer_cvs, many=True)
+
+        return JsonResponse(serializer.data, safe=False)  # safe=False for serializing lists
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
 
 @api_view(['GET'])
@@ -596,6 +607,60 @@ def fetch_department_profiles(request, college_profile_id):
         return Response(serializer.data)
     except DepartmentProfile.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def update_lecturer_cv(request, pk):
+    try:
+        lecturer_cv = LecturerCV.objects.get(pk=pk)
+
+        # Check if the user has permission to edit this lecturer CV
+        if lecturer_cv.user != request.user:
+            return JsonResponse({'error': 'You do not have permission to edit this CV'}, status=403)
+
+        # Serialize the existing data
+        serializer = LecturerCVSerializer(lecturer_cv, data=request.data, partial=True)  # partial=True for partial updates
+
+        if serializer.is_valid():
+            serializer.save()
+            return JsonResponse(serializer.data)
+        else:
+            return JsonResponse(serializer.errors, status=400)
+    except LecturerCV.DoesNotExist:
+        return JsonResponse({'error': 'Lecturer CV not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+from django.shortcuts import get_object_or_404
+from django.http import JsonResponse
+from .models import LecturerCV
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_lecturer_cv(request, pk):
+    if request.method == 'DELETE':
+        cv = get_object_or_404(LecturerCV, pk=pk)
+        # Perform any necessary permission checks here
+        cv.delete()
+        return JsonResponse({'message': 'Lecturer CV deleted successfully'}, status=200)
+    else:
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+
+
+
 
 
 
@@ -673,3 +738,130 @@ def manage_integration_requests(request):
             return Response({'error': 'Integration request not found'}, status=404)
         except Exception as e:
             return Response({'error': str(e)}, status=500)
+        
+        
+        
+        
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_post(request):
+    user = request.user
+
+    # Extract the user ID from the request data
+    request_data = request.data.copy()
+    request_data['user'] = user.id  # Assign the user ID to the 'user' field
+
+    # Check user association with University
+    if UniversityProfile.objects.filter(user=user).exists():
+        serializer = UniversityPostSerializer(data=request_data)
+        if serializer.is_valid():
+            # Save the post with the associated university profile
+            university_profile = user.universityprofile_set.first()
+            serializer.save(university=university_profile)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    # Check user association with Campus
+    elif CampusProfile.objects.filter(user=user).exists():
+        serializer = CampusPostSerializer(data=request_data)
+        if serializer.is_valid():
+            # Save the post with the associated campus profile
+            campus_profile = user.campusprofile_set.first()
+            serializer.save(campus=campus_profile)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    # Check user association with College
+    elif CollegeProfile.objects.filter(user=user).exists():
+        serializer = CollegePostSerializer(data=request_data)
+        if serializer.is_valid():
+            # Save the post with the associated college profile
+            college_profile = user.collegeprofile_set.first()
+            serializer.save(college=college_profile)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    # Check user association with Department
+    elif DepartmentProfile.objects.filter(user=user).exists():
+        serializer = DepartmentPostSerializer(data=request_data)
+        if serializer.is_valid():
+            # Save the post with the associated department profile
+            department_profile = user.departmentprofile_set.first()
+            serializer.save(department=department_profile)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    # Check user association with Lecturer
+    elif LecturerCV.objects.filter(user=user).exists():
+        serializer = LecturerPostSerializer(data=request_data)
+        if serializer.is_valid():
+            # Save the post with the associated lecturer profile
+            lecturer_profile = user.lecturercv_set.first()
+            serializer.save(lecturer=lecturer_profile)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    else:
+        return Response({"error": "User is not associated with any hierarchy."}, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_post(request, post_id):
+    user = request.user
+
+    try:
+        # Retrieve the post
+        post = Post.objects.get(id=post_id)
+
+        # Check if the user is the creator of the post
+        if post.user != user:
+            return Response({"error": "You don't have permission to delete this post."}, status=status.HTTP_403_FORBIDDEN)
+
+        # Delete the post
+        post.delete()
+        return Response({"message": "Post deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
+    except Post.DoesNotExist:
+        return Response({"error": "Post not found."}, status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['GET', 'POST'])
+def university_profile_list(request):
+    """
+    List all university profiles or create a new university profile.
+    """
+    if request.method == 'GET':
+        university_profiles = UniversityProfile.objects.all()
+        serializer = UniversityProfileSerializer(university_profiles, many=True)
+        return Response(serializer.data)
+
+    elif request.method == 'POST':
+        serializer = UniversityProfileSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET', 'PUT', 'DELETE'])
+def university_profile_detail(request, pk):
+    """
+    Retrieve, update or delete a university profile.
+    """
+    print('id', id, pk)
+    university_profile = get_object_or_404(UniversityProfile, pk=id)
+    print(university_profile)
+
+    if request.method == 'GET':
+        serializer = UniversityProfileSerializer(university_profile)
+        return Response(serializer.data)
+
+    elif request.method == 'PUT':
+        serializer = UniversityProfileSerializer(university_profile, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    elif request.method == 'DELETE':
+        university_profile.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
