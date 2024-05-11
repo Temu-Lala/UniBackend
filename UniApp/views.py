@@ -31,6 +31,7 @@ from django.contrib.auth.hashers import check_password
 from rest_framework.authtoken.models import Token
 from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.contrib.auth.models import Permission
 
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.authentication import SessionAuthentication, TokenAuthentication, BasicAuthentication
@@ -179,7 +180,44 @@ class login(APIView):
 
         return Response({'success': True, 'token': token}, status=status.HTTP_200_OK)
  
-   
+class LoginAs(APIView):
+    def post(self, request):
+        username = request.data.get('username')
+        password = request.data.get('password')
+
+        # Simple input validation
+        if not username or not password:
+            return Response({'success': False, 'errors': {'__all__': 'Username and password are required.'}}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Authenticate user
+        user = authenticate(username=username, password=password)
+        if not user:
+            return Response({'success': False, 'errors': {'__all__': 'Invalid username or password.'}}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check user associations with profiles
+        associations = {
+            'university': UniversityProfile.objects.filter(user=user).first(),
+            'campus': CampusProfile.objects.filter(user=user).first(),
+            'college': CollegeProfile.objects.filter(user=user).first(),
+            'department': DepartmentProfile.objects.filter(user=user).first(),
+            'lecture': LecturerCV.objects.filter(user=user).first()
+        }
+
+        # You can customize this logic based on your requirements
+        allowed_profiles = []
+        for profile_type, profile in associations.items():
+            if profile:
+                allowed_profiles.append({
+                    'type': profile_type,
+                    'profile': profile
+                })
+
+        # Generate JWT token
+        refresh = RefreshToken.for_user(user)
+        token = str(refresh.access_token)
+
+        # Return response with token and allowed profiles
+        return Response({'success': True, 'token': token, 'allowed_profiles': allowed_profiles}, status=status.HTTP_200_OK)
     
 
 @api_view(['POST','GET'])
@@ -402,11 +440,20 @@ def group_list(request):
     return JsonResponse(data, safe=False)
 
 
-
-
-
-
-
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def store_user_into_group(request):
+    if request.method == 'POST':
+        group_name = request.data.get('group')  # Assuming you're sending data as JSON
+        try:
+            group = Group.objects.get(name=group_name)
+            user = request.user  # Assuming you're using JWT authentication or similar
+            user.groups.add(group)
+            return Response({'message': f'User registered to {group_name} successfully'}, status=200)
+        except Group.DoesNotExist:
+            return Response({'error': 'Group not found'}, status=404)
+    else:
+        return Response({'error': 'Invalid request method'}, status=400)
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def department_profiles_create(request):

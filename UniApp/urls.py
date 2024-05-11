@@ -7,8 +7,8 @@ from .views import UniversityProfileViewSet, CampusProfileViewSet, CollegeProfil
 from .views import add_comment,create_lecturer_cv,college_profiles_create,department_profiles_create,campus_profiles_create,update_user_profile,manage_integration_requests,send_integration_request,create_lecturer_cv
 from rest_framework_simplejwt import views as jwt_views
 from .views import login
-from .views import edit_comment
-from .views import create_post,delete_post,get_lecturer_cvs,update_lecturer_cv
+from .views import edit_comment,LoginAs
+from .views import create_post,delete_post,get_lecturer_cvs,update_lecturer_cv,store_user_into_group
 
 
 router = DefaultRouter()
@@ -38,6 +38,8 @@ urlpatterns = [
     path('logout/', views.logout),
     path('user-profile/', views.user_profile),
     path('add-comment/', add_comment, name='add_comment'),
+    path('store-user-into-group/', store_user_into_group, name='store_user_into_group'),
+
     path('groups/', views.group_list, name='groups'),
     # path('lecturer-cv/', create_lecturer_cv, name='lecturer_cv_create'),  # Add your custom view URL
     path('college_profiles/', college_profiles_create, name='college_profiles_create'),  # Add your custom view URL
@@ -67,5 +69,6 @@ urlpatterns = [
     path('lecturer-cv/update/<int:pk>/', update_lecturer_cv, name='update_lecturer_cv'),
     path('lecturer-cv/delete/<int:pk>/', views.delete_lecturer_cv, name='delete_lecturer_cv'),
     path('university-profiles/<int:pk>/', views.university_profile_detail, name='universityprofile-detail'),
+    path('loginas/', LoginAs.as_view(), name='login'),
 
 ]

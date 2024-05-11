@@ -7,6 +7,7 @@ from rest_framework.authtoken.models import Token
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.utils import timezone
+from django.contrib.auth.models import AbstractUser, Permission
 
 class GustUser(AbstractUser):
     GENDER_CHOICES = [
@@ -275,3 +276,28 @@ class Message(models.Model):
     sender = models.ForeignKey(GustUser, related_name='sent_messages', on_delete=models.CASCADE)
     recipient = models.ForeignKey(GustUser, related_name='received_messages', on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
+    
+    
+    
+    
+    
+    
+
+
+class Group(models.Model):
+    name = models.CharField(max_length=100)
+
+    def __str__(self):
+        return self.name
+
+# Signal to create custom permissions for each group
+def create_custom_permissions(sender, **kwargs):
+    if kwargs['created']:
+        content_type = ContentType.objects.get_for_model(Group)
+        Permission.objects.create(content_type=content_type, codename='can_register_as_campus', name='Can register as Campus')
+        Permission.objects.create(content_type=content_type, codename='can_register_as_college', name='Can register as College')
+        Permission.objects.create(content_type=content_type, codename='can_register_as_department', name='Can register as Department')
+        Permission.objects.create(content_type=content_type, codename='can_register_as_lectures', name='Can register as Lectures')
+        Permission.objects.create(content_type=content_type, codename='can_register_as_university', name='Can register as University')
+
+models.signals.post_save.connect(create_custom_permissions, sender=Group)
