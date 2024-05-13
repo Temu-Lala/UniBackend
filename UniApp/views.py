@@ -180,60 +180,43 @@ class login(APIView):
 
         return Response({'success': True, 'token': token}, status=status.HTTP_200_OK)
  
-class LoginAs(APIView):
-    def post(self, request):
-        username = request.data.get('username')
-        password = request.data.get('password')
-
-        # Simple input validation
-        if not username or not password:
-            return Response({'success': False, 'errors': {'__all__': 'Username and password are required.'}}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Authenticate user
-        user = authenticate(username=username, password=password)
-        if not user:
-            return Response({'success': False, 'errors': {'__all__': 'Invalid username or password.'}}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Check user associations with profiles
-        associations = {
-            'university': UniversityProfile.objects.filter(user=user).first(),
-            'campus': CampusProfile.objects.filter(user=user).first(),
-            'college': CollegeProfile.objects.filter(user=user).first(),
-            'department': DepartmentProfile.objects.filter(user=user).first(),
-            'lecture': LecturerCV.objects.filter(user=user).first()
-        }
-
-        # You can customize this logic based on your requirements
-        allowed_profiles = []
-        for profile_type, profile in associations.items():
-            if profile:
-                allowed_profiles.append({
-                    'type': profile_type,
-                    'profile': profile
-                })
-
-        # Generate JWT token
-        refresh = RefreshToken.for_user(user)
-        token = str(refresh.access_token)
-
-        # Return response with token and allowed profiles
-        return Response({'success': True, 'token': token, 'allowed_profiles': allowed_profiles}, status=status.HTTP_200_OK)
+   
     
 
+class UserProfileAssociation(APIView):
+    def get(self, request):
+        # Get user based on authentication
+        user = request.user
+
+        # Check if the user is associated with a university profile
+        try:
+            university_profile = UniversityProfile.objects.get(user=user)
+            return Response({'success': True, 'profile_type': 'university'}, status=status.HTTP_200_OK)
+        except UniversityProfile.DoesNotExist:
+            try:
+                # Check if the user is associated with a campus profile
+                campus_profile = CampusProfile.objects.get(user=user)
+                return Response({'success': True, 'profile_type': 'campus'}, status=status.HTTP_200_OK)
+            except CampusProfile.DoesNotExist:
+                try:
+                    # Check if the user is associated with a college profile
+                    college_profile = CollegeProfile.objects.get(user=user)
+                    return Response({'success': True, 'profile_type': 'college'}, status=status.HTTP_200_OK)
+                except CollegeProfile.DoesNotExist:
+                    try:
+                        # Check if the user is associated with a department profile
+                        department_profile = DepartmentProfile.objects.get(user=user)
+                        return Response({'success': True, 'profile_type': 'department'}, status=status.HTTP_200_OK)
+                    except DepartmentProfile.DoesNotExist:
+                        try:
+                            # Check if the user is associated with a lecturer CV
+                            lecturer_cv = LecturerCV.objects.get(user=user)
+                            return Response({'success': True, 'profile_type': 'lecturer'}, status=status.HTTP_200_OK)
+                        except LecturerCV.DoesNotExist:
+                            return Response({'success': True, 'profile_type': 'default'}, status=status.HTTP_200_OK)
 @api_view(['POST','GET'])
 @permission_classes([IsAuthenticated])
 def add_comment(request):
-    """
-    API endpoint to add comments to posts.
-
-    Expects a POST request with the following JSON data in the request body:
-        - postId: ID of the post to comment on
-        - postType: Type of the post (e.g., 'college', 'campus')
-        - commentText: Text of the comment
-
-    Returns a JSON response with details of the created comment on success,
-    or an error message with status code on failure.
-    """
     data = request.data
     post_id = data.get('postId')
     post_type = data.get('postType')
@@ -289,21 +272,6 @@ def add_comment(request):
 @api_view(['GET', 'PUT'])
 @permission_classes([IsAuthenticated])
 def edit_comment(request, comment_id):
-    """
-    API endpoint to fetch and edit an existing comment.
-
-    For GET requests:
-        - Fetches the comment data.
-
-    For PUT requests:
-        - Updates the comment.
-
-    Expects a PUT request with the following JSON data in the request body:
-        - commentText: Updated text of the comment (optional)
-
-    Returns a JSON response with details of the edited comment on success,
-    or an error message with status code on failure.
-    """
     if request.method == 'GET':
         try:
             # Retrieve the comment object to be edited
@@ -410,13 +378,6 @@ def TestView(request):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def logout(request):
-    """
-    Logs out the authenticated user by deleting their JWT token from the database.
-
-    Returns:
-        Response: A JSON response with a success message on successful logout or an error message if logout fails.
-    """
-
     try:
         # Retrieve the user's JWT token
         jwt_token = JWTToken.objects.get(user=request.user)
@@ -574,14 +535,6 @@ def campus_profiles_for_university(request, university_profile_id):
     except CampusProfile.DoesNotExist:
         return Response({"message": "Campuses not found"}, status=404)
 
-
-
-
-
-
-
-
-
 @api_view(['POST', 'PUT'])
 @permission_classes([IsAuthenticated])
 def create_lecturer_cv(request):
@@ -680,17 +633,7 @@ def update_lecturer_cv(request, pk):
         return JsonResponse({'error': str(e)}, status=500)
     
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+  
 from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
 from .models import LecturerCV
@@ -704,11 +647,6 @@ def delete_lecturer_cv(request, pk):
         return JsonResponse({'message': 'Lecturer CV deleted successfully'}, status=200)
     else:
         return JsonResponse({'error': 'Method not allowed'}, status=405)
-
-
-
-
-
 
 
 @api_view(['GET', 'PUT'])
@@ -738,10 +676,7 @@ def user_profile(request):
     except GustUser.DoesNotExist:
         return Response({'error': 'User profile not found'}, status=status.HTTP_404_NOT_FOUND)
     
-
-    
-    
-    
+   
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def send_integration_request(request):
@@ -785,9 +720,6 @@ def manage_integration_requests(request):
             return Response({'error': 'Integration request not found'}, status=404)
         except Exception as e:
             return Response({'error': str(e)}, status=500)
-        
-        
-        
         
 
 @api_view(['POST'])

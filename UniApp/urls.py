@@ -7,7 +7,7 @@ from .views import UniversityProfileViewSet, CampusProfileViewSet, CollegeProfil
 from .views import add_comment,create_lecturer_cv,college_profiles_create,department_profiles_create,campus_profiles_create,update_user_profile,manage_integration_requests,send_integration_request,create_lecturer_cv
 from rest_framework_simplejwt import views as jwt_views
 from .views import login
-from .views import edit_comment,LoginAs
+from .views import edit_comment,UserProfileAssociation
 from .views import create_post,delete_post,get_lecturer_cvs,update_lecturer_cv,store_user_into_group
 
 
@@ -69,6 +69,6 @@ urlpatterns = [
     path('lecturer-cv/update/<int:pk>/', update_lecturer_cv, name='update_lecturer_cv'),
     path('lecturer-cv/delete/<int:pk>/', views.delete_lecturer_cv, name='delete_lecturer_cv'),
     path('university-profiles/<int:pk>/', views.university_profile_detail, name='universityprofile-detail'),
-    path('loginas/', LoginAs.as_view(), name='login'),
+    path('api/user-profile/', UserProfileAssociation.as_view(), name='user_profile_association'),
 
 ]
