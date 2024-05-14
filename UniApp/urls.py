@@ -9,6 +9,7 @@ from rest_framework_simplejwt import views as jwt_views
 from .views import login
 from .views import edit_comment,UserProfileAssociation
 from .views import create_post,delete_post,get_lecturer_cvs,update_lecturer_cv,store_user_into_group
+from .views import get_post_comments
 
 
 router = DefaultRouter()
@@ -70,5 +71,7 @@ urlpatterns = [
     path('lecturer-cv/delete/<int:pk>/', views.delete_lecturer_cv, name='delete_lecturer_cv'),
     path('university-profiles/<int:pk>/', views.university_profile_detail, name='universityprofile-detail'),
     path('api/user-profile/', UserProfileAssociation.as_view(), name='user_profile_association'),
-
+    path('like-post/', views.like_post),
+    path('dislike-post/', views.dislike_post),
+    path('get_post_comments/<str:post_type>/<int:object_id>/', views.get_post_comments, name='get_post_comments')
 ]

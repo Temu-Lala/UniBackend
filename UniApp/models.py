@@ -8,6 +8,7 @@ from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.utils import timezone
 from django.contrib.auth.models import AbstractUser, Permission
+from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 
 class GustUser(AbstractUser):
     GENDER_CHOICES = [
@@ -28,17 +29,20 @@ class JWTToken(models.Model):
     def __str__(self):
         return f"Token for {self.user.username}"
 
-class BaseComment(models.Model):
+class Comment(models.Model):
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    object_id = models.PositiveIntegerField()
+    content_object = GenericForeignKey('content_type', 'object_id')
     author = models.ForeignKey(GustUser, on_delete=models.CASCADE)
     body = models.TextField()
-    created_on = models.DateTimeField(auto_now_add=True)
+    created_on = models.DateTimeField(default=timezone.now)
 
     class Meta:
-        abstract = True
         ordering = ['created_on']
 
     def __str__(self):
-        return 'Comment "{}" by {}'.format(self.body, self.author)
+        return f'Comment "{self.body}" by {self.author.username}'
+
 class UniversityProfile(models.Model):
     STATUS_CHOICES = (
         ('pending', 'Pending'),
@@ -195,9 +199,6 @@ class IntegrationRequest(models.Model):
 
 
 
-
-
-
 class BasePost(models.Model):
     id = models.AutoField(primary_key=True)
     university = models.ForeignKey(UniversityProfile, on_delete=models.CASCADE, blank=True, null=True)
@@ -216,6 +217,7 @@ class BasePost(models.Model):
     dislikes = models.IntegerField(default=0)
     shares = models.IntegerField(default=0)
     user = models.ForeignKey(GustUser, on_delete=models.CASCADE)
+    comment = models.ForeignKey(Comment, on_delete=models.CASCADE)
 
     def __str__(self):
         return f"Post #{self.pk}"
@@ -225,18 +227,28 @@ class BasePost(models.Model):
 
 class CollegePost(BasePost):
     responding_to_post = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True)
+    comments = GenericRelation(Comment)
 
 class CampusPost(BasePost):
     responding_to_post = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True)
+    comments = GenericRelation(Comment)
 
 class UniversityPost(BasePost):
     responding_to_post = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True)
+    comments = GenericRelation(Comment)
 
 class DepartmentPost(BasePost):
     responding_to_post = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True)
+    comments = GenericRelation(Comment)
 
 class LecturerPost(BasePost):
     responding_to_post = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True)
+    comments = GenericRelation(Comment)
+
+
+
+
+
 
 class Reaction(models.Model):
     REACTION_TYPES = [
@@ -251,20 +263,7 @@ class Reaction(models.Model):
     reaction_type = models.CharField(max_length=1, choices=REACTION_TYPES)
     created_at = models.DateTimeField(default=timezone.now)
 
-class Comment(models.Model):
-    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
-    post_id = models.PositiveIntegerField()  # Change this to match the field name in BasePost
-    post = GenericForeignKey('content_type', 'post_id')  # Change 'object_id' to 'post_id'
-    author = models.ForeignKey(GustUser, on_delete=models.CASCADE)
-    body = models.TextField()
-    created_on = models.DateTimeField(default=timezone.now)
 
-    class Meta:
-        ordering = ['created_on']
-
-
-    def __str__(self):
-        return 'Comment "{}" by {}'.format(self.body, self.author)
 
 class ChatRoom(models.Model):
     name = models.CharField(max_length=255)

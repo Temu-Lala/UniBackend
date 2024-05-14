@@ -17,14 +17,14 @@ from django.views.decorators.csrf import csrf_exempt
 from .models import (
     UniversityProfile, CampusProfile, CollegeProfile, DepartmentProfile,
     LecturerCV, GustUser, Reaction, Comment, ChatRoom, Message,
-    CollegePost, CampusPost, UniversityPost, DepartmentPost,stortoken,IntegrationRequest,LecturerPost
+    CollegePost, CampusPost,BasePost, UniversityPost, DepartmentPost,stortoken,IntegrationRequest,LecturerPost
 )
 from .serializers import (
     UniversityProfileSerializer, CampusProfileSerializer, CollegeProfileSerializer,
     DepartmentProfileSerializer, LecturerCVSerializer, CustomUserSerializer,
     ReactionSerializer, CommentSerializer, ChatRoomSerializer, MessageSerializer,
     CollegePostSerializer, CampusPostSerializer, UniversityPostSerializer,
-    DepartmentPostSerializer,TokenSerializer,IntegrationRequestSerializer,LecturerPostSerializer
+    DepartmentPostSerializer,BasePostSerializer,TokenSerializer,IntegrationRequestSerializer,LecturerPostSerializer
 )
 from django.contrib.auth.models import User
 from django.contrib.auth.hashers import check_password
@@ -214,14 +214,22 @@ class UserProfileAssociation(APIView):
                             return Response({'success': True, 'profile_type': 'lecturer'}, status=status.HTTP_200_OK)
                         except LecturerCV.DoesNotExist:
                             return Response({'success': True, 'profile_type': 'default'}, status=status.HTTP_200_OK)
-@api_view(['POST','GET'])
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework import status
+from .models import Comment, CollegePost, CampusPost, UniversityPost, DepartmentPost, LecturerPost
+
+@csrf_exempt
+@api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def add_comment(request):
     data = request.data
     post_id = data.get('postId')
     post_type = data.get('postType')
     comment_text = data.get('commentText')
-    user_id = request.user.id  # Get the user ID from the authenticated request
 
     if not all([post_id, post_type, comment_text]):
         return Response({'error': 'Missing required data (postId, postType, commentText)'}, status=status.HTTP_400_BAD_REQUEST)
@@ -233,19 +241,14 @@ def add_comment(request):
         # Determine the type of post and retrieve it
         post_model = None
         if post_type == 'college':
-            from .models import CollegePost
             post_model = CollegePost
         elif post_type == 'campus':
-            from .models import CampusPost
             post_model = CampusPost
         elif post_type == 'university':
-            from .models import UniversityPost
             post_model = UniversityPost
         elif post_type == 'department':
-            from .models import DepartmentPost
             post_model = DepartmentPost
         elif post_type == 'lecturer':
-            from .models import LecturerPost
             post_model = LecturerPost
 
         if post_model is None:
@@ -254,21 +257,104 @@ def add_comment(request):
         post = post_model.objects.get(pk=post_id)
 
         # Create the comment for the post
-        comment = Comment.objects.create(post=post, author=user, body=comment_text)
+        comment = Comment.objects.create(
+            content_object=post,
+            author=user,
+            body=comment_text
+        )
 
         # Return the username of the comment author along with other comment details
         return Response({
             'id': comment.id,
             'body': comment.body,
-            'author': user.username,  # Return username instead of user object
+            'author': user.username,
             'created_on': comment.created_on.strftime("%Y-%m-%d %H:%M:%S")
         }, status=status.HTTP_201_CREATED)
+
     except post_model.DoesNotExist:
         return Response({'error': f'{post_type.capitalize()} post not found'}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
         print(f"An error occurred: {e}")  # Log the error for debugging
         return Response({'error': 'Internal server error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+@csrf_exempt
+@api_view(['POST'])
+def like_post(request):
+    postId = request.data.get('postId')
+    postType = request.data.get('postType')
+
+    # Determine the model based on postType
+    post_model = None
+    if postType == 'college':
+        post_model = CollegePost
+    elif postType == 'campus':
+        post_model = CampusPost
+    elif postType == 'university':
+        post_model = UniversityPost
+    elif postType == 'department':
+        post_model = DepartmentPost
+    elif postType == 'lecturer':
+        post_model = LecturerPost
+    else:
+        return Response({'error': 'Invalid post type'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        post = post_model.objects.get(id=postId)
+        # Increment the likes count
+        post.likes += 1
+        post.save()
+        return Response({'message': 'Post liked successfully'}, status=status.HTTP_200_OK)
+    except post_model.DoesNotExist:
+        return Response({'error': 'Post not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return Response({'error': 'Internal server error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@csrf_exempt
+@api_view(['POST'])
+def dislike_post(request):
+    postId = request.data.get('postId')
+    postType = request.data.get('postType')
+
+    # Determine the model based on postType
+    post_model = None
+    if postType == 'college':
+        post_model = CollegePost
+    elif postType == 'campus':
+        post_model = CampusPost
+    elif postType == 'university':
+        post_model = UniversityPost
+    elif postType == 'department':
+        post_model = DepartmentPost
+    elif postType == 'lecturer':
+        post_model = LecturerPost
+    else:
+        return Response({'error': 'Invalid post type'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        post = post_model.objects.get(id=postId)
+        # Increment the dislikes count
+        post.dislikes += 1
+        post.save()
+        return Response({'message': 'Post disliked successfully'}, status=status.HTTP_200_OK)
+    except post_model.DoesNotExist:
+        return Response({'error': 'Post not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return Response({'error': 'Internal server error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+@api_view(['GET'])
+def get_post_comments(request, post_type, object_id):
+    try:
+        # Convert the object_id to string before querying comments
+        comments = Comment.objects.filter(object_id=str(object_id))
+        
+        # Serialize comments and return as JSON response
+        serialized_comments = [{'id': comment.id, 'object_id': comment.object_id, 'body': comment.body, 'created_on': comment.created_on.strftime("%Y-%m-%d %H:%M:%S"), 'content_type': comment.content_type, 'author': comment.author} for comment in comments]
+        return JsonResponse({'comments': serialized_comments})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@csrf_exempt
 @api_view(['GET', 'PUT'])
 @permission_classes([IsAuthenticated])
 def edit_comment(request, comment_id):
@@ -325,7 +411,6 @@ def edit_comment(request, comment_id):
         except Exception as e:
             print(f"An error occurred: {e}")
             return Response({'error': 'Internal server error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 @api_view(["POST"])
 def signup(request):
     serializer = CustomUserSerializer(data=request.data)
