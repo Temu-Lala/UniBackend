@@ -18,7 +18,7 @@ from django.views.decorators.csrf import csrf_exempt
 from .models import (
     UniversityProfile, CampusProfile, CollegeProfile, DepartmentProfile,
     LecturerCV, GustUser, Reaction, Comment, ChatRoom, Message,
-    CollegePost, Notification,LabProfile,CampusPost,CollegeFollow,Follow,BasePost,UniversityRating,CampusRating,DepartmentRating,CollegeRating,LabRating, UniversityPost, DepartmentPost,stortoken,IntegrationRequest,LecturerPost
+    CollegePost, Notification,LabProfile,CampusPost,CollegeFollow, UniversityFollow,CampusFollow,DepartmentFollow,LecturerFollow,Follow,BasePost,UniversityRating,CampusRating,DepartmentRating,CollegeRating,LabRating, UniversityPost, DepartmentPost,stortoken,IntegrationRequest,LecturerPost
 )
 from .serializers import (
     UniversityProfileSerializer, CampusProfileSerializer, CollegeProfileSerializer,
@@ -1300,6 +1300,106 @@ class NotificationList(generics.ListAPIView):
     
 
 @api_view(['POST'])
+def university_follow(request, university_id):
+    try:
+        university = UniversityProfile.objects.get(pk=university_id)
+        follow = UniversityFollow(user=request.user, university=university)
+        follow.save()
+        return Response({'message': 'Followed University successfully'}, status=status.HTTP_201_CREATED)
+    except UniversityProfile.DoesNotExist:
+        return Response({'error': 'College not found'}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['POST'])
+def university_unfollow(request, university_id):
+    try:
+        university = UniversityProfile.objects.get(pk=university_id)
+        follows = UniversityFollow.objects.filter(user=request.user, university=university)
+        if follows.exists():
+            follows.delete()
+            return Response({'message': 'Unfollowed University successfully'})
+        else:
+            return Response({'error': 'You are not following this University'}, status=status.HTTP_400_BAD_REQUEST)
+    except UniversityProfile.DoesNotExist:
+        return Response({'error': 'University not found'}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['GET'])
+def university_check_follow_status(request, university_id):
+    try:
+        university = get_object_or_404(UniversityProfile, pk=university_id)
+        is_following = UniversityFollow.objects.filter(user=request.user, university=university).exists()
+        return Response({'is_following': is_following})
+    except:
+        return Response({'error': 'An error occurred while checking follow status'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    
+@api_view(['GET'])
+def university_followers_count(request, university_id):
+    try:
+        followers_count = UniversityFollow.objects.filter(university_id=university_id).count()
+        return Response({'followers_count': followers_count})
+    except:
+        return Response({'error': 'An error occurred while fetching followers count'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+
+   
+
+@api_view(['POST'])
+def campus_follow(request, campus_id):
+    try:
+        campus = CampusProfile.objects.get(pk=campus_id)
+        follow = CampusFollow(user=request.user, campus=campus)
+        follow.save()
+        return Response({'message': 'Followed college successfully'}, status=status.HTTP_201_CREATED)
+    except CollegeProfile.DoesNotExist:
+        return Response({'error': 'College not found'}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['POST'])
+def campus_unfollow(request, campus_id):
+    try:
+        campus = CampusProfile.objects.get(pk=campus_id)
+        follows = CampusFollow.objects.filter(user=request.user, campus=campus)
+        if follows.exists():
+            follows.delete()
+            return Response({'message': 'Unfollowed Campus successfully'})
+        else:
+            return Response({'error': 'You are not following this Campuss'}, status=status.HTTP_400_BAD_REQUEST)
+    except CollegeProfile.DoesNotExist:
+        return Response({'error': 'College not found'}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['GET'])
+def campus_check_follow_status(request, campus_id):
+    try:
+        campus = get_object_or_404(CampusProfile, pk=campus_id)
+        is_following = CampusFollow.objects.filter(user=request.user, campus=campus).exists()
+        return Response({'is_following': is_following})
+    except:
+        return Response({'error': 'An error occurred while checking follow status'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    
+@api_view(['GET'])
+def campus_followers_count(request, campus_id):
+    try:
+        followers_count = CampusFollow.objects.filter(campus_id=campus_id).count()
+        return Response({'followers_count': followers_count})
+    except:
+        return Response({'error': 'An error occurred while fetching followers count'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+
+
+
+
+
+
+
+
+
+   
+
+@api_view(['POST'])
 def follow_college(request, college_id):
     try:
         college = CollegeProfile.objects.get(pk=college_id)
@@ -1313,19 +1413,155 @@ def follow_college(request, college_id):
 def unfollow_college(request, college_id):
     try:
         college = CollegeProfile.objects.get(pk=college_id)
-        follow = CollegeFollow.objects.get(user=request.user, college=college)
-        follow.delete()
-        return Response({'message': 'Unfollowed college successfully'})
+        follows = CollegeFollow.objects.filter(user=request.user, college=college)
+        if follows.exists():
+            follows.delete()
+            return Response({'message': 'Unfollowed college successfully'})
+        else:
+            return Response({'error': 'You are not following this college'}, status=status.HTTP_400_BAD_REQUEST)
     except CollegeProfile.DoesNotExist:
         return Response({'error': 'College not found'}, status=status.HTTP_404_NOT_FOUND)
-    except CollegeFollow.DoesNotExist:
-        return Response({'error': 'You are not following this college'}, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
-def check_follow_status(request, college_id):
+def college_check_follow_status(request, college_id):
     try:
-        college = CollegeProfile.objects.get(pk=college_id)
+        college = get_object_or_404(CollegeProfile, pk=college_id)
         is_following = CollegeFollow.objects.filter(user=request.user, college=college).exists()
         return Response({'is_following': is_following})
-    except CollegeProfile.DoesNotExist:
+    except:
+        return Response({'error': 'An error occurred while checking follow status'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    
+@api_view(['GET'])
+def collage_followers_count(request, college_id):
+    try:
+        followers_count = CollegeFollow.objects.filter(college_id=college_id).count()
+        return Response({'followers_count': followers_count})
+    except:
+        return Response({'error': 'An error occurred while fetching followers count'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   
+
+@api_view(['POST'])
+def departmeent_follow(request, department_id):
+    try:
+        department = DepartmentProfile.objects.get(pk=department_id)
+        follow = DepartmentFollow(user=request.user, department=department)
+        follow.save()
+        return Response({'message': 'Followed department successfully'}, status=status.HTTP_201_CREATED)
+    except DepartmentProfile.DoesNotExist:
         return Response({'error': 'College not found'}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['POST'])
+def department_unfollow(request, department_id):
+    try:
+        department = DepartmentProfile.objects.get(pk=department_id)
+        follows = DepartmentFollow.objects.filter(user=request.user, department=department)
+        if follows.exists():
+            follows.delete()
+            return Response({'message': 'Unfollowed department successfully'})
+        else:
+            return Response({'error': 'You are not following this department'}, status=status.HTTP_400_BAD_REQUEST)
+    except DepartmentProfile.DoesNotExist:
+        return Response({'error': 'College not found'}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['GET'])
+def department_check_follow_status(request, department_id):
+    try:
+        department = get_object_or_404(DepartmentProfile, pk=department_id)
+        is_following = DepartmentFollow.objects.filter(user=request.user, department=department).exists()
+        return Response({'is_following': is_following})
+    except:
+        return Response({'error': 'An error occurred while checking follow status'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    
+@api_view(['GET'])
+def department_followers_count(request, department_id):
+    try:
+        followers_count = DepartmentFollow.objects.filter(department_id=department_id).count()
+        return Response({'followers_count': followers_count})
+    except:
+        return Response({'error': 'An error occurred while fetching followers count'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])  # Ensure user is authenticated
+def lecturer_follow(request, lecturer_id):
+    try:
+        lecturer = LecturerCV.objects.get(pk=lecturer_id)
+        follow = LecturerFollow(user=request.user, lecturer=lecturer)
+        follow.save()
+        return Response({'message': 'Followed lecturer successfully'}, status=status.HTTP_201_CREATED)
+    except LecturerCV.DoesNotExist:
+        return Response({'error': 'Lecturer not found'}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])  # Ensure user is authenticated
+def lecturer_unfollow(request, lecturer_id):
+    try:
+        lecturer = LecturerCV.objects.get(pk=lecturer_id)
+        follows = LecturerFollow.objects.filter(user=request.user, lecturer=lecturer)
+        if follows.exists():
+            follows.delete()
+            return Response({'message': 'Unfollowed lecturer successfully'})
+        else:
+            return Response({'error': 'You are not following this lecturer'}, status=status.HTTP_400_BAD_REQUEST)
+    except LecturerCV.DoesNotExist:
+        return Response({'error': 'Lecturer not found'}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])  # Ensure user is authenticated
+def lecturer_check_follow_status(request, lecturer_id):
+    try:
+        lecturer = get_object_or_404(LecturerCV, pk=lecturer_id)
+        is_following = LecturerFollow.objects.filter(user=request.user, lecturer=lecturer).exists()
+        return Response({'is_following': is_following})
+    except:
+        return Response({'error': 'An error occurred while checking follow status'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])  # Ensure user is authenticated
+def lecturer_followers_count(request, lecturer_id):
+    try:
+        followers_count = LecturerFollow.objects.filter(lecturer_id=lecturer_id).count()
+        return Response({'followers_count': followers_count})
+    except:
+        return Response({'error': 'An error occurred while fetching followers count'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

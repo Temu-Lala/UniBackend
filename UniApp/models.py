@@ -104,7 +104,7 @@ class CampusProfile(models.Model):
         super().save(*args, **kwargs)
         # Create a notification for the user associated with the university profile
         Notification.objects.create(
-            recipient=self.university,
+            recipient=self.user,
             message=f'You have a new rating on your university profile.'
         )
     def __str__(self):
@@ -131,7 +131,7 @@ class CollegeProfile(models.Model):
         super().save(*args, **kwargs)
         # Create a notification for the user associated with the university profile
         Notification.objects.create(
-            recipient=self.campus,
+            recipient=self.user,
             message=f'You have a new rating on your university profile.'
         )
     def __str__(self):
@@ -158,7 +158,7 @@ class DepartmentProfile(models.Model):
         super().save(*args, **kwargs)
         # Create a notification for the user associated with the university profile
         Notification.objects.create(
-            recipient=self.college,
+            recipient=self.user,
             message=f'You have a new rating on your university profile.'
         )
     def __str__(self):
@@ -208,7 +208,7 @@ class LecturerCV(models.Model):
         super().save(*args, **kwargs)
         # Create a notification for the user associated with the university profile
         Notification.objects.create(
-            recipient=self.department_profile,
+            recipient=self.user,
             message=f'You have a new rating on your university profile.'
         )
     def __str__(self):
@@ -246,7 +246,7 @@ class LabProfile(models.Model):
         super().save(*args, **kwargs)
         # Create a notification for the user associated with the university profile
         Notification.objects.create(
-            recipient=self.department_profile,
+            recipient=self.user,
             message=f'You have a new rating on your university profile.'
         )
 
@@ -425,6 +425,29 @@ class LabRating(models.Model):
             recipient=self.labprofile_profile.user,
             message=f'You have a new rating on your university profile.'
         )
+        
+        
+        
+        
+class UniversityFollow(models.Model):
+    user = models.ForeignKey(GustUser, on_delete=models.CASCADE)
+    university = models.ForeignKey(UniversityProfile, on_delete=models.CASCADE)  # Add this line
+
+class CampusFollow(models.Model):
+    user = models.ForeignKey(GustUser, on_delete=models.CASCADE)
+    campus = models.ForeignKey(CampusProfile, on_delete=models.CASCADE)
+    
+
 class CollegeFollow(models.Model):
     user = models.ForeignKey(GustUser, on_delete=models.CASCADE)
     college = models.ForeignKey(CollegeProfile, on_delete=models.CASCADE)
+    
+
+
+class DepartmentFollow(models.Model):
+    user = models.ForeignKey(GustUser, on_delete=models.CASCADE)
+    department = models.ForeignKey(DepartmentProfile, on_delete=models.CASCADE)
+    
+class LecturerFollow(models.Model):
+    user = models.ForeignKey(GustUser, on_delete=models.CASCADE)
+    lecturer = models.ForeignKey(LecturerCV, on_delete=models.CASCADE)

@@ -91,7 +91,32 @@ urlpatterns = [
     path('department_rating/', views.department_rating, name='department_rating'),
     path('lab_rating/', views.lab_rating, name='lab_rating'),
     path('notifications/', NotificationList.as_view(), name='notification-list'),
+
+    path('follow-university-profile/<int:university_id>/', views.university_follow, name='university_follow'),
+    path('unfollow-university-profile/<int:university_id>/', views.university_unfollow),  # Correct URL pattern
+    path('check-follow-university-status/university/<int:university_id>/', views.university_check_follow_status, name='check_university_follow_status'),
+    path('university_followers_count/<int:university_id>/', views.university_followers_count, name='university_follow_count'),
+    
+    
+    path('follow-campus-profile/<int:campus_id>/', views.campus_follow, name='follow_campus_profile'),
+    path('unfollow-campus-profile/<int:campus_id>/', views.campus_unfollow),  # Correct URL pattern
+    path('check-follow-campus-status/campus/<int:campus_id>/', views.campus_check_follow_status, name='check_follow_status'),
+    path('campus_followers_count/<int:campus_id>/', views.campus_followers_count, name='followers_count'),
+    
     path('follow-college-profile/<int:college_id>/', views.follow_college, name='follow_college_profile'),
-    path('unfollow-college/<int:college_id>/', views.unfollow_college),
-    path('check-follow-status/<int:college_id>/', views.check_follow_status),
+    path('unfollow-college-profile/<int:college_id>/', views.unfollow_college),  # Correct URL pattern
+    path('check-follow-status/college/<int:college_id>/', views.college_check_follow_status, name='check_follow_status'),
+    path('collage_followers_count/<int:college_id>/', views.collage_followers_count, name='followers_count'),
+    
+    path('follow-department-profile/<int:department_id>/', views.departmeent_follow, name='follow_departmet_profile'),
+    path('unfollow-department-profile/<int:department_id>/', views.department_unfollow),  # Correct URL pattern
+    path('check-follow-status/department/<int:department_id>/', views.department_check_follow_status, name='check_follow_status'),
+    path('department_followers_count/<int:department_id>/', views.department_followers_count, name='followers_count'),
+    
+    path('follow-lecturer-profile/<int:lecturer_id>/', views.lecturer_follow, name='follow_lecturer_profile'),
+    path('unfollow-lecturer-profile/<int:lecturer_id>/', views.lecturer_unfollow),  # Correct URL pattern
+    path('check-follow-status/lecturer/<int:lecturer_id>/', views.lecturer_check_follow_status, name='check_follow_status'),
+    path('followers_count/<int:lecturer_id>/', views.lecturer_followers_count, name='followers_count'),
+    
+    
 ]
