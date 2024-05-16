@@ -7,10 +7,8 @@ from .views import UniversityProfileViewSet, CampusProfileViewSet, CollegeProfil
 from .views import add_comment,create_lecturer_cv,college_profiles_create,department_profiles_create,campus_profiles_create,update_user_profile,manage_integration_requests,send_integration_request,create_lecturer_cv
 from rest_framework_simplejwt import views as jwt_views
 from .views import login
-from .views import edit_comment,UserProfileAssociation
-from .views import create_post,delete_post,get_lecturer_cvs,update_lecturer_cv,store_user_into_group
-from .views import get_post_comments
-
+from .views import edit_comment,UserProfileAssociation,NotificationList
+from .views import create_post,delete_post,get_lecturer_cvs,update_lecturer_cv,store_user_into_group,share_post,copy_link
 
 router = DefaultRouter()
 router.register(r'university-profiles', UniversityProfileViewSet)
@@ -47,10 +45,13 @@ urlpatterns = [
     path('department_profiles/', department_profiles_create, name='department_profiles_create'),  # Add your custom view URL
     path('campus_profiles/', campus_profiles_create, name='campus_profiles_create'),  # Add your custom view URL
     path('university_profiles/', update_user_profile, name='university_profiles_create'),  # Add your custom view URL
+    path('lab_profiles/', views.lab_profiles, name='lab_profiles'),
+    path('lab_profiles/<int:lab_id>/', views.lab_profiles, name='lab_profile_detail'),
+   
     path('api/token/', jwt_views.TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', jwt_views.TokenRefreshView.as_view(), name='token_refresh'),
     path('login/', login.as_view(), name='login'),
-    path('comments/<int:comment_id>/edit/', edit_comment, name='edit_comment'),
+    path('commentsedit/<int:comment_id>/edit/', edit_comment, name='edit_comment'),
        # URL pattern for sending integration requests
     path('integration_requests/', views.send_integration_request, name='send-integration-request'),
     # path('university-profiles/<int:university_profile_id>/campus_profiles/', campus_profiles_create),
@@ -73,5 +74,24 @@ urlpatterns = [
     path('api/user-profile/', UserProfileAssociation.as_view(), name='user_profile_association'),
     path('like-post/', views.like_post),
     path('dislike-post/', views.dislike_post),
-    path('get_post_comments/<str:post_type>/<int:object_id>/', views.get_post_comments, name='get_post_comments')
+    path('like-post/', views.like_post),
+    path('dislike-post/', views.dislike_post),
+    path('comments/college/<int:post_id>/', views.get_college_post_comments),
+    path('comments/campus/<int:post_id>/', views.get_campus_post_comments),
+    path('comments/university/<int:post_id>/', views.get_university_post_comments),
+    path('comments/department/<int:post_id>/', views.get_department_post_comments),
+    path('comments/lecturer/<int:post_id>/', views.get_lecturer_post_comments),
+    # path('share-post/', share_post, name='share_post'),
+    path('share-post/<str:post_type>/<int:post_id>/', views.share_post, name='share_post'),
+    path('copy-link/', copy_link, name='copy_link'),
+    path('comments/<int:comment_id>/edit/', edit_comment, name='edit_comment'),
+    path('university_rating/', views.university_rating, name='university_rating'),
+    path('campus_rating/', views.campus_rating, name='campus_rating'),
+    path('college_rating/', views.college_rating, name='college_rating'),
+    path('department_rating/', views.department_rating, name='department_rating'),
+    path('lab_rating/', views.lab_rating, name='lab_rating'),
+    path('notifications/', NotificationList.as_view(), name='notification-list'),
+    path('follow-college-profile/<int:college_id>/', views.follow_college, name='follow_college_profile'),
+    path('unfollow-college/<int:college_id>/', views.unfollow_college),
+    path('check-follow-status/<int:college_id>/', views.check_follow_status),
 ]

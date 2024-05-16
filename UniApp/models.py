@@ -17,10 +17,25 @@ class GustUser(AbstractUser):
     ]
     gender = models.CharField(max_length=1, choices=GENDER_CHOICES, blank=True, null=True)
     age = models.IntegerField(blank=True, null=True)
-
+    def follow_profile(self, profile):
+        # Create a follow relationship between the user and the profile
+        follow, created = Follow.objects.get_or_create(user=self, content_type=ContentType.objects.get_for_model(profile), object_id=profile.id)
+        return follow
     def __str__(self):
         return self.username
 
+class Follow(models.Model):
+    user = models.ForeignKey(GustUser, on_delete=models.CASCADE, related_name='following')
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    object_id = models.PositiveIntegerField()
+    content_object = GenericForeignKey('content_type', 'object_id')
+    followed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'content_type', 'object_id')
+
+    def __str__(self):
+        return f'{self.user.username} follows {self.content_type}#{self.object_id}'
 class JWTToken(models.Model):
     user = models.ForeignKey(GustUser, on_delete=models.CASCADE)
     token = models.TextField(unique=True)
@@ -29,19 +44,12 @@ class JWTToken(models.Model):
     def __str__(self):
         return f"Token for {self.user.username}"
 
-class Comment(models.Model):
-    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
-    object_id = models.PositiveIntegerField()
-    content_object = GenericForeignKey('content_type', 'object_id')
-    author = models.ForeignKey(GustUser, on_delete=models.CASCADE)
-    body = models.TextField()
-    created_on = models.DateTimeField(default=timezone.now)
 
-    class Meta:
-        ordering = ['created_on']
-
-    def __str__(self):
-        return f'Comment "{self.body}" by {self.author.username}'
+class Notification(models.Model):
+    recipient = models.ForeignKey(GustUser, on_delete=models.CASCADE)
+    message = models.CharField(max_length=255)
+    timestamp = models.DateTimeField(default=timezone.now)
+    is_read = models.BooleanField(default=False)
 
 class UniversityProfile(models.Model):
     STATUS_CHOICES = (
@@ -66,7 +74,13 @@ class UniversityProfile(models.Model):
     group = models.ForeignKey(Group, on_delete=models.CASCADE)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')  # Add status field
     user = models.ForeignKey(GustUser, on_delete=models.CASCADE)
-
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Create a notification for the user associated with the university profile
+        Notification.objects.create(
+            recipient=self.user,
+            message=f'You have a new rating on your university profile.'
+        )
     def __str__(self):
         return self.name
 
@@ -86,7 +100,13 @@ class CampusProfile(models.Model):
     university = models.ForeignKey(UniversityProfile, on_delete=models.CASCADE)
     group = models.ForeignKey(Group, on_delete=models.CASCADE)
     user = models.ForeignKey(GustUser, on_delete=models.CASCADE)
-
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Create a notification for the user associated with the university profile
+        Notification.objects.create(
+            recipient=self.university,
+            message=f'You have a new rating on your university profile.'
+        )
     def __str__(self):
         return self.name
 class stortoken(models.Model):
@@ -107,7 +127,13 @@ class CollegeProfile(models.Model):
     campus = models.ForeignKey(CampusProfile, on_delete=models.CASCADE)
     university  = models.ForeignKey(UniversityProfile, on_delete=models.CASCADE)
     user = models.ForeignKey(GustUser, on_delete=models.CASCADE)
-
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Create a notification for the user associated with the university profile
+        Notification.objects.create(
+            recipient=self.campus,
+            message=f'You have a new rating on your university profile.'
+        )
     def __str__(self):
         return self.name
 
@@ -128,7 +154,13 @@ class DepartmentProfile(models.Model):
     university = models.ForeignKey(UniversityProfile, on_delete=models.CASCADE)
     user = models.ForeignKey(GustUser, on_delete=models.CASCADE)
     campus = models.ForeignKey(CampusProfile, on_delete=models.CASCADE)
-
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Create a notification for the user associated with the university profile
+        Notification.objects.create(
+            recipient=self.college,
+            message=f'You have a new rating on your university profile.'
+        )
     def __str__(self):
         return self.name
 
@@ -172,7 +204,13 @@ class LecturerCV(models.Model):
     campus_profile = models.ForeignKey(CampusProfile, on_delete=models.CASCADE)
     college_profile = models.ForeignKey(CollegeProfile, on_delete=models.CASCADE)
     department_profile = models.ForeignKey(DepartmentProfile, on_delete=models.CASCADE)
-
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Create a notification for the user associated with the university profile
+        Notification.objects.create(
+            recipient=self.department_profile,
+            message=f'You have a new rating on your university profile.'
+        )
     def __str__(self):
         return self.name
 
@@ -197,16 +235,29 @@ class IntegrationRequest(models.Model):
 
 
 
+class LabProfile(models.Model):
+    id = models.AutoField(primary_key=True)
+    user = models.ForeignKey(GustUser, on_delete=models.CASCADE)
+    university_profile = models.ForeignKey(UniversityProfile, on_delete=models.CASCADE)
+    campus_profile = models.ForeignKey(CampusProfile, on_delete=models.CASCADE)
+    college_profile = models.ForeignKey(CollegeProfile, on_delete=models.CASCADE)
+    department_profile = models.ForeignKey(DepartmentProfile, on_delete=models.CASCADE)
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Create a notification for the user associated with the university profile
+        Notification.objects.create(
+            recipient=self.department_profile,
+            message=f'You have a new rating on your university profile.'
+        )
 
 
 class BasePost(models.Model):
     id = models.AutoField(primary_key=True)
-    university = models.ForeignKey(UniversityProfile, on_delete=models.CASCADE, blank=True, null=True)
-    campus = models.ForeignKey(CampusProfile, on_delete=models.CASCADE, blank=True, null=True)
-    college = models.ForeignKey(CollegeProfile, on_delete=models.CASCADE, blank=True, null=True)
-    department = models.ForeignKey(DepartmentProfile, on_delete=models.CASCADE, blank=True, null=True)
-    lecturer = models.ForeignKey(LecturerCV, on_delete=models.CASCADE, blank=True, null=True)
-
+    university = models.ForeignKey('UniversityProfile', on_delete=models.CASCADE, blank=True, null=True)
+    campus = models.ForeignKey('CampusProfile', on_delete=models.CASCADE, blank=True, null=True)
+    college = models.ForeignKey('CollegeProfile', on_delete=models.CASCADE, blank=True, null=True)
+    department = models.ForeignKey('DepartmentProfile', on_delete=models.CASCADE, blank=True, null=True)
+    lecturer = models.ForeignKey('LecturerCV', on_delete=models.CASCADE, blank=True, null=True)
     title = models.CharField(max_length=255, null=True)
     link = models.URLField(blank=True, null=True)
     content = models.TextField()
@@ -216,8 +267,15 @@ class BasePost(models.Model):
     likes = models.IntegerField(default=0)
     dislikes = models.IntegerField(default=0)
     shares = models.IntegerField(default=0)
-    user = models.ForeignKey(GustUser, on_delete=models.CASCADE)
-    comment = models.ForeignKey(Comment, on_delete=models.CASCADE)
+    user = models.ForeignKey('GustUser', on_delete=models.CASCADE)
+    comments = GenericRelation('Comment')
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Create a notification for the user associated with the university profile
+        Notification.objects.create(
+            recipient=self.user,
+            message=f'You have a new rating on your university profile.'
+        )
 
     def __str__(self):
         return f"Post #{self.pk}"
@@ -227,26 +285,40 @@ class BasePost(models.Model):
 
 class CollegePost(BasePost):
     responding_to_post = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True)
-    comments = GenericRelation(Comment)
 
 class CampusPost(BasePost):
     responding_to_post = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True)
-    comments = GenericRelation(Comment)
 
 class UniversityPost(BasePost):
     responding_to_post = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True)
-    comments = GenericRelation(Comment)
 
 class DepartmentPost(BasePost):
     responding_to_post = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True)
-    comments = GenericRelation(Comment)
 
 class LecturerPost(BasePost):
     responding_to_post = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True)
-    comments = GenericRelation(Comment)
 
+class Comment(models.Model):
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    object_id = models.PositiveIntegerField()
+    content_object = GenericForeignKey('content_type', 'object_id')
+    author = models.ForeignKey('GustUser', on_delete=models.CASCADE, related_name='authored_comments')
+    body = models.TextField()
+    created_on = models.DateTimeField(default=timezone.now)
 
+    class Meta:
+        ordering = ['created_on']
 
+    def __str__(self):
+        return f'Comment "{self.body}" by {self.author.username}'
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Create a notification for the post owner
+        Notification.objects.create(
+            recipient=self.content_object.user,  # Assuming each post has a 'user' field for the owner
+            message=f'Your post received a new comment.'
+        )
 
 
 
@@ -276,8 +348,83 @@ class Message(models.Model):
     recipient = models.ForeignKey(GustUser, related_name='received_messages', on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
     
-    
-    
-    
-    
-   
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Create a notification for the user associated with the university profile
+        Notification.objects.create(
+            recipient=self.recipient,
+            message=f'You have a new messages '
+        )
+class UniversityRating(models.Model):
+    id = models.AutoField(primary_key=True)
+    university_profile = models.ForeignKey(UniversityProfile, on_delete=models.CASCADE, related_name='university_ratings')
+    value = models.IntegerField()
+    comment = models.TextField(blank=True, null=True)
+    user = models.ForeignKey(GustUser, on_delete=models.CASCADE)
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Create a notification for the user associated with the university profile
+        Notification.objects.create(
+            recipient=self.university_profile.user,
+            message=f'You have a new rating on your university profile.'
+        )
+class CampusRating(models.Model):
+    id = models.AutoField(primary_key=True)
+    campus_profile = models.ForeignKey(CampusProfile, on_delete=models.CASCADE, related_name='university_ratings')
+    value = models.IntegerField()
+    comment = models.TextField(blank=True, null=True)
+    user = models.ForeignKey(GustUser, on_delete=models.CASCADE)
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Create a notification for the user associated with the university profile
+        Notification.objects.create(
+            recipient=self.campus_profile.user,
+            message=f'You have a new rating on your university profile.'
+        )
+class CollegeRating(models.Model):
+    id = models.AutoField(primary_key=True)
+    college_profile = models.ForeignKey(CollegeProfile, on_delete=models.CASCADE, related_name='university_ratings')
+    value = models.IntegerField()
+    comment = models.TextField(blank=True, null=True)
+    user = models.ForeignKey(GustUser, on_delete=models.CASCADE)
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Create a notification for the user associated with the university profile
+        Notification.objects.create(
+            recipient=self.college_profile.user,
+            message=f'You have a new rating on your university profile.'
+        )
+class DepartmentRating(models.Model):
+    id = models.AutoField(primary_key=True)
+    department_profile = models.ForeignKey(DepartmentProfile, on_delete=models.CASCADE, related_name='university_ratings')
+    value = models.IntegerField()
+    comment = models.TextField(blank=True, null=True)
+    user = models.ForeignKey(GustUser, on_delete=models.CASCADE)
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Create a notification for the user associated with the university profile
+        Notification.objects.create(
+            recipient=self.department_profile.user,
+            message=f'You have a new rating on your university profile.'
+        )
+class LabRating(models.Model):
+    id = models.AutoField(primary_key=True)
+    labprofile_profile = models.ForeignKey(LabProfile, on_delete=models.CASCADE, related_name='university_ratings')
+    value = models.IntegerField()
+    comment = models.TextField(blank=True, null=True)
+    user = models.ForeignKey(GustUser, on_delete=models.CASCADE)
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Create a notification for the user associated with the university profile
+        Notification.objects.create(
+            recipient=self.labprofile_profile.user,
+            message=f'You have a new rating on your university profile.'
+        )
+class CollegeFollow(models.Model):
+    user = models.ForeignKey(GustUser, on_delete=models.CASCADE)
+    college = models.ForeignKey(CollegeProfile, on_delete=models.CASCADE)

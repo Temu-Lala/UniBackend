@@ -11,20 +11,21 @@ from .models import JWTToken
 from datetime import datetime
 from django.utils.timezone import now
 from django.db.models import Q
+from rest_framework import generics
 
 from django.contrib.auth.models import Group
 from django.views.decorators.csrf import csrf_exempt
 from .models import (
     UniversityProfile, CampusProfile, CollegeProfile, DepartmentProfile,
     LecturerCV, GustUser, Reaction, Comment, ChatRoom, Message,
-    CollegePost, CampusPost,BasePost, UniversityPost, DepartmentPost,stortoken,IntegrationRequest,LecturerPost
+    CollegePost, Notification,LabProfile,CampusPost,CollegeFollow,Follow,BasePost,UniversityRating,CampusRating,DepartmentRating,CollegeRating,LabRating, UniversityPost, DepartmentPost,stortoken,IntegrationRequest,LecturerPost
 )
 from .serializers import (
     UniversityProfileSerializer, CampusProfileSerializer, CollegeProfileSerializer,
     DepartmentProfileSerializer, LecturerCVSerializer, CustomUserSerializer,
     ReactionSerializer, CommentSerializer, ChatRoomSerializer, MessageSerializer,
     CollegePostSerializer, CampusPostSerializer, UniversityPostSerializer,
-    DepartmentPostSerializer,BasePostSerializer,TokenSerializer,IntegrationRequestSerializer,LecturerPostSerializer
+    DepartmentPostSerializer,NotificationSerializer,LabProfileSerializer,BasePostSerializer,UniversityRatingSerializer,CampusRatingSerializer,CollegeRatingSerializer,DepartmentRatingSerializer,LabRatingSerializer,TokenSerializer,IntegrationRequestSerializer,LecturerPostSerializer
 )
 from django.contrib.auth.models import User
 from django.contrib.auth.hashers import check_password
@@ -222,7 +223,36 @@ from rest_framework.response import Response
 from rest_framework import status
 from .models import Comment, CollegePost, CampusPost, UniversityPost, DepartmentPost, LecturerPost
 
-@csrf_exempt
+@api_view(['GET'])
+def get_college_post_comments(request, post_id):
+    comments = Comment.objects.filter(content_type__model='collegepost', object_id=post_id)
+    serializer = CommentSerializer(comments, many=True)
+    return Response({'comments': serializer.data})
+
+@api_view(['GET'])
+def get_campus_post_comments(request, post_id):
+    comments = Comment.objects.filter(content_type__model='campuspost', object_id=post_id)
+    serializer = CommentSerializer(comments, many=True)
+    return Response({'comments': serializer.data})
+
+@api_view(['GET'])
+def get_university_post_comments(request, post_id):
+    comments = Comment.objects.filter(content_type__model='universitypost', object_id=post_id)
+    serializer = CommentSerializer(comments, many=True)
+    return Response({'comments': serializer.data})
+
+@api_view(['GET'])
+def get_department_post_comments(request, post_id):
+    comments = Comment.objects.filter(content_type__model='departmentpost', object_id=post_id)
+    serializer = CommentSerializer(comments, many=True)
+    return Response({'comments': serializer.data})
+
+@api_view(['GET'])
+def get_lecturer_post_comments(request, post_id):
+    comments = Comment.objects.filter(content_type__model='lecturerpost', object_id=post_id)
+    serializer = CommentSerializer(comments, many=True)
+    return Response({'comments': serializer.data})
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def add_comment(request):
@@ -279,6 +309,7 @@ def add_comment(request):
 
 @csrf_exempt
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def like_post(request):
     postId = request.data.get('postId')
     postType = request.data.get('postType')
@@ -312,6 +343,7 @@ def like_post(request):
 
 @csrf_exempt
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def dislike_post(request):
     postId = request.data.get('postId')
     postType = request.data.get('postType')
@@ -342,26 +374,14 @@ def dislike_post(request):
     except Exception as e:
         print(f"An error occurred: {e}")
         return Response({'error': 'Internal server error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-@api_view(['GET'])
-def get_post_comments(request, post_type, object_id):
-    try:
-        # Convert the object_id to string before querying comments
-        comments = Comment.objects.filter(object_id=str(object_id))
-        
-        # Serialize comments and return as JSON response
-        serialized_comments = [{'id': comment.id, 'object_id': comment.object_id, 'body': comment.body, 'created_on': comment.created_on.strftime("%Y-%m-%d %H:%M:%S"), 'content_type': comment.content_type, 'author': comment.author} for comment in comments]
-        return JsonResponse({'comments': serialized_comments})
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
 
-@csrf_exempt
 @api_view(['GET', 'PUT'])
 @permission_classes([IsAuthenticated])
 def edit_comment(request, comment_id):
     if request.method == 'GET':
         try:
             # Retrieve the comment object to be edited
-            comment = Comment.objects.get(pk=comment_id)
+            comment = get_object_or_404(Comment, pk=comment_id)
 
             # Check if the user owns the comment
             if comment.author != request.user:
@@ -375,8 +395,6 @@ def edit_comment(request, comment_id):
                 'created_on': comment.created_on.strftime("%Y-%m-%d %H:%M:%S")
             }, status=status.HTTP_200_OK)
 
-        except Comment.DoesNotExist:
-            return Response({'error': 'Comment not found'}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             print(f"An error occurred: {e}")
             return Response({'error': 'Internal server error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -387,7 +405,7 @@ def edit_comment(request, comment_id):
 
         try:
             # Retrieve the comment object to be edited
-            comment = Comment.objects.get(pk=comment_id)
+            comment = get_object_or_404(Comment, pk=comment_id)
 
             # Check if the user owns the comment
             if comment.author != request.user:
@@ -406,11 +424,60 @@ def edit_comment(request, comment_id):
                 'created_on': comment.created_on.strftime("%Y-%m-%d %H:%M:%S")
             }, status=status.HTTP_200_OK)
 
-        except Comment.DoesNotExist:
-            return Response({'error': 'Comment not found'}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             print(f"An error occurred: {e}")
             return Response({'error': 'Internal server error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+def get_post_object(post_type, post_id):
+    """Helper function to fetch the post object based on the post type."""
+    if post_type == 'college':
+        return CollegePost.objects.get(id=post_id)
+    elif post_type == 'campus':
+        return CampusPost.objects.get(id=post_id)
+    elif post_type == 'university':
+        return UniversityPost.objects.get(id=post_id)
+    elif post_type == 'department':
+        return DepartmentPost.objects.get(id=post_id)
+    elif post_type == 'lecturer':
+        return LecturerPost.objects.get(id=post_id)
+    else:
+        raise ValueError("Invalid post type")
+
+
+def share_post(request, post_type, post_id):
+    try:
+        post_model = {
+            'college': CollegePost,
+            'campus': CampusPost,
+            'university': UniversityPost,
+            'department': DepartmentPost,
+            'lecturer': LecturerPost,
+        }.get(post_type)
+
+        if not post_model:
+            return JsonResponse({'error': 'Invalid post type'}, status=400)
+
+        post = get_object_or_404(post_model, id=post_id)
+        share_link = request.build_absolute_uri(f'/share/{post_type}/{post_id}/')
+
+        post.shares += 1
+        post.save()
+
+        return JsonResponse({'shareLink': share_link}, status=200)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+@api_view(["POST"])
+def copy_link(request):
+    try:
+        data = request.data
+        share_link = data.get('shareLink')
+
+        # Perform any additional validation or processing if needed
+
+        # Return the shareable link for copying
+        return JsonResponse({'shareLink': share_link}, status=200)
+    except Exception as e:
+        return JsonResponse({'error': 'An error occurred while processing the request.'}, status=500)
 @api_view(["POST"])
 def signup(request):
     serializer = CustomUserSerializer(data=request.data)
@@ -734,6 +801,60 @@ def delete_lecturer_cv(request, pk):
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
 
+@api_view(['POST', 'GET', 'PUT'])
+@permission_classes([IsAuthenticated])
+def lab_profiles(request, lab_id=None):
+    if request.method == 'POST':
+        try:
+            user = request.user
+            university_id = request.data.get('university_id')
+            campus_id = request.data.get('campus_profile_id')
+            college_id = request.data.get('college_profile_id')
+            department_id = request.data.get('department_profile_id')
+            
+            # Check if the university, campus, college, and department exist
+            # You need to import the respective models here
+            
+            # Add the user ID, university ID, campus ID, college ID, and department ID to the lab data
+            lab_data = request.data.copy()
+            lab_data['user'] = user.id
+            lab_data['university_profile'] = university_id
+            lab_data['campus_profile'] = campus_id
+            lab_data['college_profile'] = college_id
+            lab_data['department_profile'] = department_id
+            
+            serializer = LabProfileSerializer(data=lab_data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            else:
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    elif request.method == 'GET':
+        try:
+            lab = LabProfile.objects.get(pk=lab_id)
+            serializer = LabProfileSerializer(lab)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except LabProfile.DoesNotExist:
+            return Response({'error': 'Lab profile not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    elif request.method == 'PUT':
+        try:
+            lab = LabProfile.objects.get(pk=lab_id)
+            serializer = LabProfileSerializer(lab, data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            else:
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except LabProfile.DoesNotExist:
+            return Response({'error': 'Lab profile not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 @api_view(['GET', 'PUT'])
 @permission_classes([IsAuthenticated])
 def user_profile(request):
@@ -929,3 +1050,282 @@ def university_profile_detail(request, pk):
     elif request.method == 'DELETE':
         university_profile.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+    
+
+
+
+@api_view(['POST', 'GET', 'PUT'])
+@permission_classes([IsAuthenticated])
+def university_rating(request):
+    if request.method == 'POST':
+        try:
+            user = request.user
+            university_id = request.data.get('university_id')
+            rating_value = request.data.get('value')
+            comment = request.data.get('comment', None)
+
+            rating = UniversityRating.objects.create(
+                user=user,
+                university_profile_id=university_id,
+                value=rating_value,
+                comment=comment
+            )
+            return Response({'message': 'Rating added successfully'}, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    elif request.method == 'GET':
+        try:
+            university_id = request.query_params.get('university_id')
+            ratings = UniversityRating.objects.filter(university_profile_id=university_id)
+            serializer = UniversityRatingSerializer(ratings, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    elif request.method == 'PUT':
+        try:
+            user = request.user
+            comment_id = request.data.get('comment_id')
+            new_comment = request.data.get('comment')
+
+            comment = UniversityRating.objects.get(id=comment_id, user=user)
+            comment.comment = new_comment
+            comment.save()
+
+            return Response({'message': 'Comment updated successfully'}, status=status.HTTP_200_OK)
+        except UniversityRating.DoesNotExist:
+            return Response({'error': 'Comment not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+
+
+
+
+
+
+@api_view(['POST', 'GET', 'PUT'])
+@permission_classes([IsAuthenticated])
+def campus_rating(request):
+    if request.method == 'POST':
+        try:
+            user = request.user
+            campus_id = request.data.get('campus_id')
+            rating_value = request.data.get('value')
+            comment = request.data.get('comment', None)
+
+            rating = CampusRating.objects.create(
+                user=user,
+                campus_profile_id=campus_id,
+                value=rating_value,
+                comment=comment
+            )
+            return Response({'message': 'Rating added successfully'}, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    elif request.method == 'GET':
+        try:
+            campus_id = request.query_params.get('campus_id')
+            ratings = CampusRating.objects.filter(campus_profile_id=campus_id)
+            serializer = CampusRatingSerializer(ratings, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    elif request.method == 'PUT':
+        try:
+            user = request.user
+            comment_id = request.data.get('comment_id')
+            new_comment = request.data.get('comment')
+
+            comment = CampusRating.objects.get(id=comment_id, user=user)
+            comment.comment = new_comment
+            comment.save()
+
+            return Response({'message': 'Comment updated successfully'}, status=status.HTTP_200_OK)
+        except CampusRating.DoesNotExist:
+            return Response({'error': 'Comment not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+@api_view(['POST', 'GET', 'PUT'])
+@permission_classes([IsAuthenticated])
+def college_rating(request):
+    if request.method == 'POST':
+        try:
+            user = request.user
+            college_id = request.data.get('college_id')
+            rating_value = request.data.get('value')
+            comment = request.data.get('comment', None)
+
+            rating = CollegeRating.objects.create(
+                user=user,
+                college_profile_id=college_id,
+                value=rating_value,
+                comment=comment
+            )
+            return Response({'message': 'Rating added successfully'}, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    elif request.method == 'GET':
+        try:
+            college_id = request.query_params.get('college_id')
+            ratings = CollegeRating.objects.filter(college_profile_id=college_id)
+            serializer = CollegeRatingSerializer(ratings, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    elif request.method == 'PUT':
+        try:
+            user = request.user
+            comment_id = request.data.get('comment_id')
+            new_comment = request.data.get('comment')
+
+            comment = CollegeRating.objects.get(id=comment_id, user=user)
+            comment.comment = new_comment
+            comment.save()
+
+            return Response({'message': 'Comment updated successfully'}, status=status.HTTP_200_OK)
+        except CollegeRating.DoesNotExist:
+            return Response({'error': 'Comment not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST', 'GET', 'PUT'])
+@permission_classes([IsAuthenticated])
+def department_rating(request):
+    if request.method == 'POST':
+        try:
+            user = request.user
+            department_id = request.data.get('department_id')
+            rating_value = request.data.get('value')
+            comment = request.data.get('comment', None)
+
+            rating = DepartmentRating.objects.create(
+                user=user,
+                department_profile_id=department_id,
+                value=rating_value,
+                comment=comment
+            )
+            return Response({'message': 'Rating added successfully'}, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    elif request.method == 'GET':
+        try:
+            department_id = request.query_params.get('department_id')
+            ratings = DepartmentRating.objects.filter(department_profile_id=department_id)
+            serializer = DepartmentRatingSerializer(ratings, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    elif request.method == 'PUT':
+        try:
+            user = request.user
+            comment_id = request.data.get('comment_id')
+            new_comment = request.data.get('comment')
+
+            comment = DepartmentRating.objects.get(id=comment_id, user=user)
+            comment.comment = new_comment
+            comment.save()
+
+            return Response({'message': 'Comment updated successfully'}, status=status.HTTP_200_OK)
+        except DepartmentRating.DoesNotExist:
+            return Response({'error': 'Comment not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST', 'GET', 'PUT'])
+@permission_classes([IsAuthenticated])
+def lab_rating(request):
+    if request.method == 'POST':
+        try:
+            user = request.user
+            university_id = request.data.get('university_id')
+            rating_value = request.data.get('value')
+            comment = request.data.get('comment', None)
+
+            rating = LabRating.objects.create(
+                user=user,
+                university_profile_id=university_id,
+                value=rating_value,
+                comment=comment
+            )
+            return Response({'message': 'Rating added successfully'}, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    elif request.method == 'GET':
+        try:
+            university_id = request.query_params.get('university_id')
+            ratings = LabRating.objects.filter(university_profile_id=university_id)
+            serializer = LabRatingSerializer(ratings, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    elif request.method == 'PUT':
+        try:
+            user = request.user
+            comment_id = request.data.get('comment_id')
+            new_comment = request.data.get('comment')
+
+            comment = LabRating.objects.get(id=comment_id, user=user)
+            comment.comment = new_comment
+            comment.save()
+
+            return Response({'message': 'Comment updated successfully'}, status=status.HTTP_200_OK)
+        except LabRating.DoesNotExist:
+            return Response({'error': 'Comment not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+
+
+
+
+
+class NotificationList(generics.ListAPIView):
+    queryset = Notification.objects.all()
+    serializer_class = NotificationSerializer
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+@api_view(['POST'])
+def follow_college(request, college_id):
+    try:
+        college = CollegeProfile.objects.get(pk=college_id)
+        follow = CollegeFollow(user=request.user, college=college)
+        follow.save()
+        return Response({'message': 'Followed college successfully'}, status=status.HTTP_201_CREATED)
+    except CollegeProfile.DoesNotExist:
+        return Response({'error': 'College not found'}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['POST'])
+def unfollow_college(request, college_id):
+    try:
+        college = CollegeProfile.objects.get(pk=college_id)
+        follow = CollegeFollow.objects.get(user=request.user, college=college)
+        follow.delete()
+        return Response({'message': 'Unfollowed college successfully'})
+    except CollegeProfile.DoesNotExist:
+        return Response({'error': 'College not found'}, status=status.HTTP_404_NOT_FOUND)
+    except CollegeFollow.DoesNotExist:
+        return Response({'error': 'You are not following this college'}, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+def check_follow_status(request, college_id):
+    try:
+        college = CollegeProfile.objects.get(pk=college_id)
+        is_following = CollegeFollow.objects.filter(user=request.user, college=college).exists()
+        return Response({'is_following': is_following})
+    except CollegeProfile.DoesNotExist:
+        return Response({'error': 'College not found'}, status=status.HTTP_404_NOT_FOUND)

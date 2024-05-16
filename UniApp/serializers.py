@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import UniversityProfile,BasePost,stortoken,IntegrationRequest, CampusProfile, CollegeProfile, DepartmentProfile, LecturerCV, GustUser, Reaction, Comment, ChatRoom, Message, CollegePost, CampusPost, UniversityPost, DepartmentPost,LecturerPost
+from .models import UniversityProfile,UniversityRating,LabProfile,Follow,CampusRating,CollegeRating,DepartmentRating,LabRating,Notification,BasePost,stortoken,IntegrationRequest, CampusProfile, CollegeProfile, DepartmentProfile, LecturerCV, GustUser, Reaction, Comment, ChatRoom, Message, CollegePost, CampusPost, UniversityPost, DepartmentPost,LecturerPost
 from rest_framework.authtoken.models import Token
 from rest_framework.serializers import ModelSerializer
 from django.contrib.auth.models import User
@@ -16,6 +16,31 @@ class CampusProfileSerializer(serializers.ModelSerializer):
         model = CampusProfile
         fields = '__all__'
 
+class UniversityRatingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UniversityRating
+        fields = ['id', 'user', 'university_profile', 'value', 'comment']  # Include 'comment' field in the serializer
+class CampusRatingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CampusRating
+        fields = ['id', 'user', 'campus_profile', 'value', 'comment']  # Include 'comment' field in the serializer
+
+class CollegeRatingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CollegeRating
+        fields = ['id', 'user', 'college_profile', 'value', 'comment']  # Include 'comment' field in the serializer
+
+class DepartmentRatingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DepartmentRating
+        fields = ['id', 'user', 'department_profile', 'value', 'comment']  # Include 'comment' field in the serializer
+
+class LabRatingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LabRating
+        fields = ['id', 'user', 'labprofile_profile', 'value', 'comment']  # Include 'comment' field in the serializer
+
+
 
 class CollegeProfileSerializer(serializers.ModelSerializer):
     class Meta:
@@ -24,6 +49,10 @@ class CollegeProfileSerializer(serializers.ModelSerializer):
 class DepartmentProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = DepartmentProfile
+        fields = '__all__'
+class LabProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LabProfile
         fields = '__all__'
 
 class LecturerCVSerializer(serializers.ModelSerializer):
@@ -58,7 +87,10 @@ class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
         fields = '__all__'
-
+class CollegeFollowSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Follow
+        fields = '__all__'
 class ChatRoomSerializer(serializers.ModelSerializer):
     class Meta:
         model = ChatRoom
@@ -94,4 +126,10 @@ class DepartmentPostSerializer(BasePostSerializer):
 class IntegrationRequestSerializer(serializers.ModelSerializer):
     class Meta:
         model = IntegrationRequest
+        fields = '__all__'
+        
+        
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
         fields = '__all__'
