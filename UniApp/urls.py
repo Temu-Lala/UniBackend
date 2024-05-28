@@ -9,6 +9,14 @@ from rest_framework_simplejwt import views as jwt_views
 from .views import login
 from .views import edit_comment,UserProfileAssociation,NotificationList
 from .views import create_post,delete_post,get_lecturer_cvs,update_lecturer_cv,store_user_into_group,share_post,copy_link
+from django.conf import settings
+from django.conf.urls.static import static
+from django.urls import path, include
+from django.urls import path
+from django.contrib.auth import views as auth_views
+from .views import password_reset_request
+from .views import update_password
+
 
 router = DefaultRouter()
 router.register(r'university-profiles', UniversityProfileViewSet)
@@ -94,4 +102,13 @@ urlpatterns = [
     path('follow-college-profile/<int:college_id>/', views.follow_college, name='follow_college_profile'),
     path('unfollow-college/<int:college_id>/', views.unfollow_college),
     path('check-follow-status/<int:college_id>/', views.check_follow_status),
-]
+    path('contacts-with-chats/', views.MessageViewSet.contacts_with_chats, name='contacts_with_chats'),
+    
+    path('api/password_reset/', password_reset_request, name='password_reset_request'),
+    
+    path('reset/<uidb64>/<token>/', update_password, name='update_password'),
+    
+    #test
+    path('university/profiles/', views.university_profile_list, name='university_profile_list'),
+
+] + static(settings.STATIC_URL, document_root=settings.STATICFILES_DIRS[0])

@@ -104,7 +104,7 @@ class CampusProfile(models.Model):
         super().save(*args, **kwargs)
         # Create a notification for the user associated with the university profile
         Notification.objects.create(
-            recipient=self.university,
+            recipient=self.user,
             message=f'You have a new rating on your university profile.'
         )
     def __str__(self):
@@ -131,7 +131,7 @@ class CollegeProfile(models.Model):
         super().save(*args, **kwargs)
         # Create a notification for the user associated with the university profile
         Notification.objects.create(
-            recipient=self.campus,
+            recipient=self.user,
             message=f'You have a new rating on your university profile.'
         )
     def __str__(self):
@@ -158,7 +158,7 @@ class DepartmentProfile(models.Model):
         super().save(*args, **kwargs)
         # Create a notification for the user associated with the university profile
         Notification.objects.create(
-            recipient=self.college,
+            recipient=self.user,
             message=f'You have a new rating on your university profile.'
         )
     def __str__(self):
@@ -208,7 +208,7 @@ class LecturerCV(models.Model):
         super().save(*args, **kwargs)
         # Create a notification for the user associated with the university profile
         Notification.objects.create(
-            recipient=self.department_profile,
+            recipient=self.user,
             message=f'You have a new rating on your university profile.'
         )
     def __str__(self):
@@ -228,10 +228,6 @@ class IntegrationRequest(models.Model):
 
     def __str__(self):
         return f"Integration request from {self.campus.name} to {self.university.name}"
-
-
-
-
 
 
 
