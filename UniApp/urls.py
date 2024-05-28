@@ -8,7 +8,19 @@ from .views import add_comment,create_lecturer_cv,college_profiles_create,depart
 from rest_framework_simplejwt import views as jwt_views
 from .views import login
 from .views import edit_comment,UserProfileAssociation,NotificationList
-from .views import create_post,delete_post,get_lecturer_cvs,update_lecturer_cv,store_user_into_group,share_post,copy_link
+from .views import create_post,delete_post,get_lecturer_cvs,update_lecturer_cv,store_user_into_group,copy_link
+from .views import MessageViewSet
+from .views import get_university_profile, update_university_profile,delete_university_profile
+from .views import  get_campus_profile, update_campus_profile, delete_campus_profile
+from .views import CollegeProfileCreateView, CollegeProfileRetrieveUpdateDeleteView
+from .views import college_profiles_create
+from .views import department_profile_detail, department_profiles_create
+from .views import create_lecturer_cv, update_lecturer_cv, delete_lecturer_cv
+from .views import search
+from .views import LabProfileViewSet, LabFileViewSet
+from .views import get_user_university_profile
+from .views import get_profile
+from .views import get_lab_profile_by_user
 
 router = DefaultRouter()
 router.register(r'university-profiles', UniversityProfileViewSet)
@@ -27,8 +39,8 @@ router.register(r'comments', CommentViewSet)
 router.register(r'chat-rooms', ChatRoomViewSet)
 router.register(r'messages', MessageViewSet, basename='message')
 router.register(r'lecturer-cv', LecturerCVViewSet, basename='LecturerCV')
-
-
+router.register(r'lab-profiles', LabProfileViewSet)
+router.register(r'lab-files', LabFileViewSet)
 urlpatterns = [
     path('', include(router.urls)),
     path('signup/', views.signup),
@@ -117,6 +129,42 @@ urlpatterns = [
     path('unfollow-lecturer-profile/<int:lecturer_id>/', views.lecturer_unfollow),  # Correct URL pattern
     path('check-follow-status/lecturer/<int:lecturer_id>/', views.lecturer_check_follow_status, name='check_follow_status'),
     path('followers_count/<int:lecturer_id>/', views.lecturer_followers_count, name='followers_count'),
+    # path('recommend/', views.recommend_universities, name='recommend_universities'),
+    # path('recommend_university/', recommend_university, name='recommend_university'),
+
+    # path('university_profiles/', get_university_profile, name='get_university_profile'),
+    # path('university_profiles/<int:pk>/', update_university_profile, name='update_university_profile'),
+    # path('university-profiles/update/', update_university_profile, name='update_university_profile'),
+    path('university-profile/', get_university_profile, name='get-university-profile'),
+    path('university-profile/update/', update_university_profile, name='update-university-profile'),
+    path('university-profile/delete/', delete_university_profile, name='delete-university-profile'),
+    
+    path('campus-profile/', get_campus_profile, name='get_campus_profile'),
+    path('campus-profile/update/', update_campus_profile, name='update_campus_profile'),
+    path('campus-profile/delete/', delete_campus_profile, name='delete_campus_profile'),
+
+
+    path('college-profiles/', CollegeProfileCreateView.as_view(), name='create-college-profile'),
+    path('college-profiles/<int:pk>/', CollegeProfileRetrieveUpdateDeleteView.as_view(), name='retrieve-update-delete-college-profile'),
+
+
+    path('college_profiles/update/', views.user_college_profile, name='user_college_profile'),
+    path('department-profiles/detail/', department_profile_detail),
+
+
+
+    path('update-lecturer-cv/', update_lecturer_cv, name='update-lecturer-cv'),
+    path('delete-lecturer-cv/', delete_lecturer_cv, name='delete-lecturer-cv'),
     
     
-]
+    path('api/search', search, name='search'),
+    path('api/user-university-profile/', get_user_university_profile, name='user-university-profile'),
+    path('api/get-profile/', get_profile, name='get-profile'),
+    path('api/university-profiles/by-user/', UniversityProfileViewSet.as_view({'get': 'by_user'}), name='university-profile-by-user'),
+    path('api/campus-profiles/by-user/', CampusProfileViewSet.as_view({'get': 'by_user'}), name='campus-profile-by-user'),
+    path('api/college-profiles/by-user/', CollegeProfileViewSet.as_view({'get': 'by_user'}), name='college-profile-by-user'),
+    path('api/department-profiles/by-user/', DepartmentProfileViewSet.as_view({'get': 'by_user'}), name='department-profile-by-user'),
+    path('api/lecturer-cv/by-user/', LecturerCVViewSet.as_view({'get': 'by_user'}), name='lecturer-cv-by-user'),
+    path('lab-profiles/by-user/', get_lab_profile_by_user, name='get_lab_profile_by_user'),
+
+] 

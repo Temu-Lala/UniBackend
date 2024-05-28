@@ -9,8 +9,6 @@ class UniversityProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = UniversityProfile
         fields = '__all__'
-        extra_kwargs = {'password': {'write_only': True}} 
-
 class CampusProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = CampusProfile
@@ -65,7 +63,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = GustUser
-        fields = ['id', 'username', 'email', 'password', 'first_name', 'last_name', 'gender', 'age']  # Add other fields as needed
+        fields = ['id', 'username', 'email', 'password']  # Add other fields as needed
         read_only_fields = ['id']  # ID field should be read-only
 
 class JWTTokenSerializer(serializers.ModelSerializer):
@@ -95,12 +93,18 @@ class ChatRoomSerializer(serializers.ModelSerializer):
     class Meta:
         model = ChatRoom
         fields = '__all__'
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GustUser
+        fields = ['id', 'username', 'avatar']
 
 class MessageSerializer(serializers.ModelSerializer):
+    sender = UserSerializer(read_only=True)
+    recipient = UserSerializer(read_only=True)
+
     class Meta:
         model = Message
-        fields = ['id', 'content', 'sender', 'recipient', 'created_at']
-
+        fields = ['id', 'sender', 'recipient', 'content', 'created_at']
 class BasePostSerializer(serializers.ModelSerializer):
     class Meta:
         model = BasePost
@@ -133,3 +137,50 @@ class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notification
         fields = '__all__'
+        
+        
+    
+# serializers.py
+
+from rest_framework import serializers
+from .models import LabProfile, LabFile
+
+class LabFileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LabFile
+        fields = '__all__'
+
+class LabProfileSerializer(serializers.ModelSerializer):
+    files = LabFileSerializer(many=True, read_only=True)
+    file_uploads = serializers.ListField(
+        child=serializers.FileField(max_length=100000, allow_empty_file=False, use_url=False),
+        write_only=True
+    )
+
+    class Meta:
+        model = LabProfile
+        fields = ['id', 'name', 'description', 'user', 'university_profile', 'campus_profile', 'college_profile', 'department_profile', 'files', 'file_uploads']
+
+    def create(self, validated_data):
+        files_data = validated_data.pop('file_uploads')
+        lab_profile = LabProfile.objects.create(**validated_data)
+        for file_data in files_data:
+            file_type = 'photo' if file_data.content_type.startswith('image') else 'video' if file_data.content_type.startswith('video') else 'document'
+            lab_file = LabFile.objects.create(file=file_data, file_type=file_type, lab_profile=lab_profile)
+        return lab_profile
+
+    def update(self, instance, validated_data):
+        files_data = validated_data.pop('file_uploads', None)
+        instance.name = validated_data.get('name', instance.name)
+        instance.description = validated_data.get('description', instance.description)
+        instance.university_profile = validated_data.get('university_profile', instance.university_profile)
+        instance.campus_profile = validated_data.get('campus_profile', instance.campus_profile)
+        instance.college_profile = validated_data.get('college_profile', instance.college_profile)
+        instance.department_profile = validated_data.get('department_profile', instance.department_profile)
+        instance.save()
+
+        if files_data:
+            for file_data in files_data:
+                file_type = 'photo' if file_data.content_type.startswith('image') else 'video' if file_data.content_type.startswith('video') else 'document'
+                LabFile.objects.create(file=file_data, file_type=file_type, lab_profile=instance)
+        return instance
