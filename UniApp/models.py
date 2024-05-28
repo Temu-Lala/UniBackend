@@ -9,20 +9,41 @@ from django.contrib.contenttypes.models import ContentType
 from django.utils import timezone
 from django.contrib.auth.models import AbstractUser, Permission
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
+from django.contrib.auth import get_user_model
 
+from django.contrib.auth.models import AbstractUser
+from django.db import models
+
+# class GustUser(AbstractUser):
+#     GENDER_CHOICES = [
+#         ('M', 'Male'),
+#         ('F', 'Female'),
+#     ]
+#     gender = models.CharField(max_length=1, choices=GENDER_CHOICES, blank=True, null=True)
+#     age = models.IntegerField(blank=True, null=True)
+#     field_choices = models.CharField(max_length=255)  # Fields of study chosen by the student
+#     health_condition = models.CharField(max_length=100)  # Health condition of the student
+#     exam_result = models.IntegerField()  # Exam result of the student
+
+#     def __str__(self):
+#         return self.username
 class GustUser(AbstractUser):
+    avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
+
+    def __str__(self):
+        return self.username
+class AsStudent(models.Model):
     GENDER_CHOICES = [
         ('M', 'Male'),
         ('F', 'Female'),
     ]
     gender = models.CharField(max_length=1, choices=GENDER_CHOICES, blank=True, null=True)
     age = models.IntegerField(blank=True, null=True)
-    def follow_profile(self, profile):
-        # Create a follow relationship between the user and the profile
-        follow, created = Follow.objects.get_or_create(user=self, content_type=ContentType.objects.get_for_model(profile), object_id=profile.id)
-        return follow
-    def __str__(self):
-        return self.username
+    field_choices = models.CharField(max_length=255)
+    health_condition = models.CharField(max_length=100)
+    exam_result = models.IntegerField()
+    user = models.ForeignKey(GustUser, on_delete=models.CASCADE)
+
 
 class Follow(models.Model):
     user = models.ForeignKey(GustUser, on_delete=models.CASCADE, related_name='following')
@@ -57,10 +78,38 @@ class UniversityProfile(models.Model):
         ('approved', 'Approved'),
         ('rejected', 'Rejected'),
     )
+    HEALTH_CONDITION_SUPPORT_CHOICES = (
+        ('yes', 'Yes'),
+        ('no', 'No'),
+    )
+    CATEGORY_CHOICES = (
+        ('Applied', 'Applied'),
+        ('Engineering', 'Engineering'),
+        ('Comprehensive', 'Comprehensive'),
+        ('Research', 'Research'),
+        ('Science and Technology', 'Science and Technology'),
+    )
+    REGION_CHOICES = (
+        ('Addis Abeba', 'Addis Abeba'),
+        ('Dire Dawa', 'Dire Dawa'),
+        ('Oromia', 'Oromia'),
+        ('Amhara', 'Amhara'),
+        ('Tigray', 'Tigray'),
+        ('Afar', 'Afar'),
+        ('Somali', 'Somali'),
+        ('Benishangul-Gumuz', 'Benishangul-Gumuz'),
+        ('SNNPR', 'SNNPR'),
+        ('Harari', 'Harari'),
+        ('Gambella', 'Gambella'),
+    )
+    CITY_CHOICES = (
+        ('city1', 'City 1'),
+        ('city2', 'City 2'),
+        ('city3', 'City 3'),
+    )
 
     cover_photo = models.ImageField(upload_to='static/university_covers/', blank=True, null=True)
     profile_photo = models.ImageField(upload_to='static/university_profiles/', blank=True, null=True)
-  
     name = models.CharField(max_length=255)
     bio = models.TextField(blank=True)
     link = models.URLField(blank=True)
@@ -69,22 +118,60 @@ class UniversityProfile(models.Model):
     number_of_departments = models.IntegerField(default=0)
     number_of_campuses = models.IntegerField(default=0)
     number_of_colleges = models.IntegerField(default=0)
+    number_of_libraries = models.IntegerField(default=0)
+    number_of_laboratories = models.IntegerField(default=0)
+    region = models.CharField(max_length=50, choices=REGION_CHOICES)
+    city = models.CharField(max_length=50, choices=CITY_CHOICES)
+    pobox = models.CharField(max_length=255, blank=True)
+    specific_place = models.CharField(max_length=255, blank=True)
+    category = models.CharField(max_length=50, choices=CATEGORY_CHOICES)
+    health_condition_support = models.CharField(max_length=3, choices=HEALTH_CONDITION_SUPPORT_CHOICES)
     about = models.TextField(blank=True)
     location = models.CharField(max_length=555)
     group = models.ForeignKey(Group, on_delete=models.CASCADE)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')  # Add status field
-    user = models.ForeignKey(GustUser, on_delete=models.CASCADE)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    user = models.OneToOneField(get_user_model(), on_delete=models.CASCADE)
+
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        # Create a notification for the user associated with the university profile
         Notification.objects.create(
             recipient=self.user,
-            message=f'You have a new rating on your university profile.'
+            message='You have a new rating on your university profile.'
         )
+
     def __str__(self):
         return self.name
 
 class CampusProfile(models.Model):
+    HEALTH_CONDITION_SUPPORT_CHOICES = (
+        ('yes', 'Yes'),
+        ('no', 'No'),
+    )
+    CATEGORY_CHOICES = (
+        ('Applied', 'Applied'),
+        ('Engineering', 'Engineering'),
+        ('Comprehensive', 'Comprehensive'),
+        ('Research', 'Research'),
+        ('Science and Technology', 'Science and Technology'),
+    )
+    REGION_CHOICES = (
+        ('Addis Abeba', 'Addis Abeba'),
+        ('Dire Dawa', 'Dire Dawa'),
+        ('Oromia', 'Oromia'),
+        ('Amhara', 'Amhara'),
+        ('Tigray', 'Tigray'),
+        ('Afar', 'Afar'),
+        ('Somali', 'Somali'),
+        ('Benishangul-Gumuz', 'Benishangul-Gumuz'),
+        ('SNNPR', 'SNNPR'),
+        ('Harari', 'Harari'),
+        ('Gambella', 'Gambella'),
+    )
+    CITY_CHOICES = (
+        ('city1', 'City 1'),
+        ('city2', 'City 2'),
+        ('city3', 'City 3'),
+    )
     cover_photo = models.ImageField(upload_to='static/campus_covers/', blank=True, null=True)
     profile_photo = models.ImageField(upload_to='static/campus_profiles/', blank=True, null=True)
     name = models.CharField(max_length=255)
@@ -100,12 +187,16 @@ class CampusProfile(models.Model):
     university = models.ForeignKey(UniversityProfile, on_delete=models.CASCADE)
     group = models.ForeignKey(Group, on_delete=models.CASCADE)
     user = models.ForeignKey(GustUser, on_delete=models.CASCADE)
+    region = models.CharField(max_length=50, choices=REGION_CHOICES)
+    city = models.CharField(max_length=50, choices=CITY_CHOICES)
+    pobox = models.CharField(max_length=255, blank=True)
+    specific_place = models.CharField(max_length=255, blank=True)
+
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        # Create a notification for the user associated with the university profile
         Notification.objects.create(
             recipient=self.user,
-            message=f'You have a new rating on your university profile.'
+            message=f'You have a new rating on your Campus profile.'
         )
     def __str__(self):
         return self.name
@@ -167,6 +258,7 @@ class DepartmentProfile(models.Model):
 
 class LecturerCV(models.Model):
     avatar = models.ImageField(upload_to='static/lecturer_avatars/', blank=True, null=True)
+    profile_photo = models.ImageField(upload_to='static/lecturer_avatars/', blank=True, null=True)
     name = models.CharField(max_length=255)
     location = models.CharField(max_length=255)
     job_title = models.CharField(max_length=255)
@@ -231,22 +323,33 @@ class IntegrationRequest(models.Model):
 
 
 
+
+
 class LabProfile(models.Model):
-    id = models.AutoField(primary_key=True)
-    user = models.ForeignKey(GustUser, on_delete=models.CASCADE)
-    university_profile = models.ForeignKey(UniversityProfile, on_delete=models.CASCADE)
-    campus_profile = models.ForeignKey(CampusProfile, on_delete=models.CASCADE)
-    college_profile = models.ForeignKey(CollegeProfile, on_delete=models.CASCADE)
-    department_profile = models.ForeignKey(DepartmentProfile, on_delete=models.CASCADE)
-    def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-        # Create a notification for the user associated with the university profile
-        Notification.objects.create(
-            recipient=self.department_profile,
-            message=f'You have a new rating on your university profile.'
-        )
+    name = models.CharField(max_length=255)
+    description = models.TextField()
+    user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE)
+    university_profile = models.ForeignKey('UniversityProfile', on_delete=models.CASCADE)
+    campus_profile = models.ForeignKey('CampusProfile', on_delete=models.CASCADE)
+    college_profile = models.ForeignKey('CollegeProfile', on_delete=models.CASCADE)
+    department_profile = models.ForeignKey('DepartmentProfile', on_delete=models.CASCADE)
 
+    def __str__(self):
+        return f'LabProfile {self.id}'
 
+class LabFile(models.Model):
+    FILE_TYPES = [
+        ('photo', 'Photo'),
+        ('video', 'Video'),
+        ('document', 'Document'),
+    ]
+    lab_profile = models.ForeignKey(LabProfile, on_delete=models.CASCADE, related_name='files')
+    file = models.FileField(upload_to='static/lab_files/')
+    file_type = models.CharField(max_length=10, choices=FILE_TYPES)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.file.name
 class BasePost(models.Model):
     id = models.AutoField(primary_key=True)
     university = models.ForeignKey('UniversityProfile', on_delete=models.CASCADE, blank=True, null=True)
@@ -265,9 +368,26 @@ class BasePost(models.Model):
     shares = models.IntegerField(default=0)
     user = models.ForeignKey('GustUser', on_delete=models.CASCADE)
     comments = GenericRelation('Comment')
+    
+    # New fields to store the names
+    university_name = models.CharField(max_length=255, blank=True, null=True)
+    campus_name = models.CharField(max_length=255, blank=True, null=True)
+    college_name = models.CharField(max_length=255, blank=True, null=True)
+    department_name = models.CharField(max_length=255, blank=True, null=True)
+    lecturer_name = models.CharField(max_length=255, blank=True, null=True)
+
     def save(self, *args, **kwargs):
+        if self.university:
+            self.university_name = self.university.name
+        if self.campus:
+            self.campus_name = self.campus.name
+        if self.college:
+            self.college_name = self.college.name
+        if self.department:
+            self.department_name = self.department.name
+        if self.lecturer:
+            self.lecturer_name = self.lecturer.name
         super().save(*args, **kwargs)
-        # Create a notification for the user associated with the university profile
         Notification.objects.create(
             recipient=self.user,
             message=f'You have a new rating on your university profile.'
@@ -310,9 +430,8 @@ class Comment(models.Model):
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        # Create a notification for the post owner
         Notification.objects.create(
-            recipient=self.content_object.user,  # Assuming each post has a 'user' field for the owner
+            recipient=self.content_object.user,
             message=f'Your post received a new comment.'
         )
 
@@ -339,11 +458,16 @@ class ChatRoom(models.Model):
 
 
 class Message(models.Model):
-    content = models.TextField()
     sender = models.ForeignKey(GustUser, related_name='sent_messages', on_delete=models.CASCADE)
     recipient = models.ForeignKey(GustUser, related_name='received_messages', on_delete=models.CASCADE)
+    content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
-    
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f'Message from {self.sender} to {self.recipient}'
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
         # Create a notification for the user associated with the university profile
@@ -421,6 +545,32 @@ class LabRating(models.Model):
             recipient=self.labprofile_profile.user,
             message=f'You have a new rating on your university profile.'
         )
+        
+        
+        
+        
+class UniversityFollow(models.Model):
+    user = models.ForeignKey(GustUser, on_delete=models.CASCADE)
+    university = models.ForeignKey(UniversityProfile, on_delete=models.CASCADE)  # Add this line
+
+class CampusFollow(models.Model):
+    user = models.ForeignKey(GustUser, on_delete=models.CASCADE)
+    campus = models.ForeignKey(CampusProfile, on_delete=models.CASCADE)
+    
+
 class CollegeFollow(models.Model):
     user = models.ForeignKey(GustUser, on_delete=models.CASCADE)
     college = models.ForeignKey(CollegeProfile, on_delete=models.CASCADE)
+    
+
+
+class DepartmentFollow(models.Model):
+    user = models.ForeignKey(GustUser, on_delete=models.CASCADE)
+    department = models.ForeignKey(DepartmentProfile, on_delete=models.CASCADE)
+    
+class LecturerFollow(models.Model):
+    user = models.ForeignKey(GustUser, on_delete=models.CASCADE)
+    lecturer = models.ForeignKey(LecturerCV, on_delete=models.CASCADE)
+
+
+
