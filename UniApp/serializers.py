@@ -66,6 +66,19 @@ class CustomUserSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'email', 'password']  # Add other fields as needed
         read_only_fields = ['id']  # ID field should be read-only
 
+    def create(self, validated_data):
+        user = GustUser(
+            username=validated_data['username'],
+            email=validated_data['email'],
+            first_name=validated_data.get('first_name', ''),
+            last_name=validated_data.get('last_name', ''),
+
+        )
+        user.set_password(validated_data['password'])  # Hash the password
+        user.save()
+        return user
+    
+    
 class JWTTokenSerializer(serializers.ModelSerializer):
     class Meta:
         model = JWTToken

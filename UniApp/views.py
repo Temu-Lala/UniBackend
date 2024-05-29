@@ -1,3 +1,5 @@
+import json
+from urllib.parse import unquote_plus
 from rest_framework import viewsets
 from rest_framework.decorators import action, api_view, authentication_classes, permission_classes
 from rest_framework.response import Response
@@ -8,10 +10,24 @@ from django.http import JsonResponse
 from django.contrib.auth import authenticate
 from rest_framework.authtoken.models import Token
 from .models import JWTToken
+from UniApp.models import GustUser
 from datetime import datetime
 from django.utils.timezone import now
 from django.db.models import Q
 from rest_framework import generics
+from django.contrib.auth.forms import PasswordResetForm
+from django.contrib.auth.models import User
+from django.core.mail import send_mail
+from django.urls import reverse
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+from django.template.loader import render_to_string
+from django.contrib.auth.tokens import default_token_generator
+from django.conf import settings
+from django.utils.http import urlsafe_base64_decode
+# from django.utils.encoding import force_str
+from django.contrib.auth import get_user_model
+from django.utils.encoding import force_bytes
 from .serializers import LabProfileSerializer, LabFileSerializer
 from .models import LabProfile, LabFile
 
@@ -43,7 +59,12 @@ from django.contrib.auth.models import User, Group
 from rest_framework import generics, permissions
 from rest_framework.exceptions import PermissionDenied
 
-# Import your user and post models (replace with your actual models)
+from django import forms
+# Import user and post models 
+
+class PasswordResetForm(forms.Form):
+    email = forms.EmailField()
+
 
 
 class UniversityProfileViewSet(viewsets.ModelViewSet):
@@ -414,12 +435,17 @@ class MessageViewSet(viewsets.ModelViewSet):
                 Q(sender_id=recipient_id, recipient_id=sender_id)
             ).order_by('created_at')
             
+            messages = Message.objects.filter(
+                Q(sender_id=sender_id, recipient_id=recipient_id) | 
+                Q(sender_id=recipient_id, recipient_id=sender_id)
+            ).order_by('created_at')
+            
             serializer = self.get_serializer(messages, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
         else:
             return Response({"error": "Sender ID and Recipient ID are required."}, status=status.HTTP_400_BAD_REQUEST)
     
-    @action(detail=False, methods=['get'], url_path='contacts_with_chats')
+    @action(detail=False, methods=['get'])
     def contacts_with_chats(self, request):
         user = request.user
         messages = Message.objects.filter(
@@ -434,20 +460,19 @@ class MessageViewSet(viewsets.ModelViewSet):
                 contact_ids.add(message['recipient'])
 
         contacts = GustUser.objects.filter(id__in=contact_ids)
-        contacts_data = []
-
-        for contact in contacts:
-            contact_info = {
-                'id': contact.id,
-                'username': contact.username
-            }
-            if hasattr(contact, 'avatar') and contact.avatar:
-                contact_info['avatar'] = contact.avatar.url
-            else:
-                contact_info['avatar'] = None
-            contacts_data.append(contact_info)
-
+        # contacts_data = [{'id': contact.id, 'username': contact.username, 'avatar': contact.avatar.url if contact.avatar else None} for contact in contacts]
+        contacts_data = [
+    {
+        'id': contact.id,
+        'username': contact.username,
+        # 'avatar': contact.avatar.url if contact.avatar else None
+    }
+    for contact in contacts
+]
         return Response(contacts_data, status=status.HTTP_200_OK)
+        
+        
+
 class login(APIView):
     def post(self, request):
         username = request.data.get('username')
@@ -458,7 +483,7 @@ class login(APIView):
             return Response({'success': False, 'errors': {'__all__': 'Username and password are required.'}}, status=status.HTTP_400_BAD_REQUEST)
 
         # Authenticate user
-        user = GustUser.objects.filter(username=username, password=password).first()
+        user = authenticate(username=username, password=password)
         if not user:
             return Response({'success': False, 'errors': {'__all__': 'Invalid username or password.'}}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -546,11 +571,11 @@ from .models import Comment, CollegePost, CampusPost, UniversityPost, Department
 
 
 
-
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def create_post(request):
     user = request.user
+
     # Create a new dictionary for request data
     request_data = {
         'title': request.data.get('title'),
@@ -565,53 +590,57 @@ def create_post(request):
         'shares': 0
     }
 
-    if UniversityProfile.objects.filter(user=user).exists():
-        university_profile = user.universityprofile_set.first()
-        request_data['university'] = university_profile.id
-        serializer = UniversityPostSerializer(data=request_data)
-        if serializer.is_valid():
-            serializer.save(university=university_profile)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        if UniversityProfile.objects.filter(user=user).exists():
+            university_profile = UniversityProfile.objects.get(user=user)
+            request_data['university'] = university_profile.id
+            serializer = UniversityPostSerializer(data=request_data)
+            if serializer.is_valid():
+                serializer.save(university=university_profile)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    elif CampusProfile.objects.filter(user=user).exists():
-        campus_profile = user.campusprofile_set.first()
-        request_data['campus'] = campus_profile.id
-        serializer = CampusPostSerializer(data=request_data)
-        if serializer.is_valid():
-            serializer.save(campus=campus_profile)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        elif CampusProfile.objects.filter(user=user).exists():
+            campus_profile = CampusProfile.objects.get(user=user)
+            request_data['campus'] = campus_profile.id
+            serializer = CampusPostSerializer(data=request_data)
+            if serializer.is_valid():
+                serializer.save(campus=campus_profile)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    elif CollegeProfile.objects.filter(user=user).exists():
-        college_profile = user.collegeprofile_set.first()
-        request_data['college'] = college_profile.id
-        serializer = CollegePostSerializer(data=request_data)
-        if serializer.is_valid():
-            serializer.save(college=college_profile)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        elif CollegeProfile.objects.filter(user=user).exists():
+            college_profile = CollegeProfile.objects.get(user=user)
+            request_data['college'] = college_profile.id
+            serializer = CollegePostSerializer(data=request_data)
+            if serializer.is_valid():
+                serializer.save(college=college_profile)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    elif DepartmentProfile.objects.filter(user=user).exists():
-        department_profile = user.departmentprofile_set.first()
-        request_data['department'] = department_profile.id
-        serializer = DepartmentPostSerializer(data=request_data)
-        if serializer.is_valid():
-            serializer.save(department=department_profile)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        elif DepartmentProfile.objects.filter(user=user).exists():
+            department_profile = DepartmentProfile.objects.get(user=user)
+            request_data['department'] = department_profile.id
+            serializer = DepartmentPostSerializer(data=request_data)
+            if serializer.is_valid():
+                serializer.save(department=department_profile)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    elif LecturerCV.objects.filter(user=user).exists():
-        lecturer_profile = user.lecturercv_set.first()
-        request_data['lecturer'] = lecturer_profile.id
-        serializer = LecturerPostSerializer(data=request_data)
-        if serializer.is_valid():
-            serializer.save(lecturer=lecturer_profile)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        elif LecturerCV.objects.filter(user=user).exists():
+            lecturer_profile = LecturerCV.objects.get(user=user)
+            request_data['lecturer'] = lecturer_profile.id
+            serializer = LecturerPostSerializer(data=request_data)
+            if serializer.is_valid():
+                serializer.save(lecturer=lecturer_profile)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    else:
-        return Response({"error": "User is not associated with any hierarchy."}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response({"error": "User is not associated with any hierarchy."}, status=status.HTTP_400_BAD_REQUEST)
+
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])
 def delete_post(request, post_id):
@@ -965,9 +994,23 @@ def get_post_object(post_type, post_id):
 #         return JsonResponse({'shareLink': share_link}, status=200)
 #     except Exception as e:
 #         return JsonResponse({'error': 'An error occurred while processing the request.'}, status=500)
+    
+    
 
-@api_view(["POST"])
+@api_view(['POST'])
 def signup(request):
+    username = request.data.get('username')
+    email = request.data.get('email')
+    User = get_user_model()
+
+    # Check if the username already exists
+    if User.objects.filter(username=username).exists():
+        return Response({'errors': {'username': 'Username already exists.'}}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Check if the email already exists
+    if User.objects.filter(email=email).exists():
+        return Response({'errors': {'email': 'Email already exists.'}}, status=status.HTTP_400_BAD_REQUEST)
+
     serializer = CustomUserSerializer(data=request.data)
     if serializer.is_valid():
         user = serializer.save()
@@ -1925,12 +1968,6 @@ def lab_rating(request):
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-
-
-
-
-
-
 class NotificationList(generics.ListAPIView):
     queryset = Notification.objects.all()
     serializer_class = NotificationSerializer
@@ -2118,6 +2155,108 @@ def departmeent_follow(request, department_id):
         return Response({'message': 'Followed department successfully'}, status=status.HTTP_201_CREATED)
     except DepartmentProfile.DoesNotExist:
         return Response({'error': 'College not found'}, status=status.HTTP_404_NOT_FOUND)
+    
+    
+    
+
+@csrf_exempt
+def password_reset_request(request):
+    if request.method == "POST":
+        try:
+            data = request.body.decode('utf-8')
+            print('Request body:', data)  # Debugging log
+            data = json.loads(data)
+            email = data.get('email', '')
+            print('Received email:', email)  # Debugging log
+
+            if email:
+                associated_users = get_user_model().objects.filter(email=email)
+                if associated_users.exists():
+                    for user in associated_users:
+                        uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
+                        token = default_token_generator.make_token(user)
+                        uidb64_param = urlsafe_base64_encode(force_bytes(user.pk))
+                        token_param = default_token_generator.make_token(user)
+                        reset_link = f"http://localhost:3000/password/new_password?uidb64={uidb64_param}&token={token_param}"
+                        subject = "Password Reset Requested"
+                        message = (
+                            f"Dear {user.username},\n\n"
+                            "You have requested to reset your password. Please follow this link to reset your password: "
+                            f"http://localhost:3000/password/new_password?uidb64={uidb64_param}&token={token_param}" 
+                            "\n If you didn't request this, please ignore this email.\n\n"
+                            "Best regards,\n UniConnect Team"
+                        )
+                        print(f'Attempting to send email to {user.email}')  # Debugging log
+                        try:
+                            send_mail(
+                                subject,
+                                message,
+                                settings.DEFAULT_FROM_EMAIL,
+                                [user.email],  # Use the user's email from the database
+                                fail_silently=False,
+                            )
+                            print(f'Email successfully sent to {user.email}')  # Debugging log
+                        except Exception as e:
+                            print(f'Error sending email to {user.email}: {e}')  # Debugging log
+                            return JsonResponse({'error': f'Error sending email to {user.email}: {e}'}, status=500)
+                    return JsonResponse({'message': 'Password reset link has been sent to your email.'})
+                else:
+                    print('No associated users found.')  # Debugging log
+                    return JsonResponse({'error': 'No user is associated with this email address.'}, status=404)
+            else:
+                print('Email address is required.')  # Debugging log
+                return JsonResponse({'error': 'Email address is required.'}, status=400)
+        except Exception as e:
+            print('Error:', e)  # Debugging log
+            return JsonResponse({'error': 'An error occurred while processing the request.'}, status=500)
+    else:
+        print('Invalid request method.')  # Debugging log
+        return JsonResponse({'error': 'Invalid request method.'}, status=400)
+
+
+
+@csrf_exempt
+def update_password(request, uidb64, token):
+    if request.method == "POST":
+        try:
+            uidb64 = unquote_plus(uidb64)
+            token = unquote_plus(token)
+
+            try:
+                data = request.body.decode('utf-8')
+            except UnicodeDecodeError as e:
+                print('Decoding error:', e)  # Debugging log
+                return JsonResponse({'error': 'Invalid encoding in request body.'}, status=400)
+
+            print('Request body:', data)  # Debugging log
+            data = json.loads(data)
+            new_password = data.get('password', '')
+            print('Received password:', new_password)
+
+            if new_password:
+                try:
+                    uid = urlsafe_base64_decode(uidb64).decode()
+                    print(f'Decoded UID: {uid}')  # Debugging log
+                    user = get_user_model().objects.get(pk=uid)
+                    if default_token_generator.check_token(user, token):
+                        user.set_password(new_password)
+                        user.save()
+                        return JsonResponse({'message': 'Password has been reset successfully.'})
+                    else:
+                        print('Invalid token.')  # Debugging log
+                        return JsonResponse({'error': 'Invalid or expired token.'}, status=400)
+                except (ValueError, OverflowError, get_user_model().DoesNotExist) as e:
+                    print('Error:', e)  # Console log any errors
+                    return JsonResponse({'error': 'Invalid user ID or token.'}, status=400)
+            else:
+                print('Password is required.')  # Console log if password is not provided
+                return JsonResponse({'error': 'Password is required.'}, status=400)
+        except Exception as e:
+            print('Error:', e)  # Console log if an error occurs
+            return JsonResponse({'error': 'An error occurred while processing the request.'}, status=500)
+    else:
+        print('Invalid request method.')  # Console log if request method is not POST
+        return JsonResponse({'error': 'Invalid request method.'}, status=400)
 
 @api_view(['POST'])
 def department_unfollow(request, department_id):

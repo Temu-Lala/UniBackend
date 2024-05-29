@@ -21,6 +21,14 @@ from .views import LabProfileViewSet, LabFileViewSet
 from .views import get_user_university_profile
 from .views import get_profile
 from .views import get_lab_profile_by_user
+from django.conf import settings
+from django.conf.urls.static import static
+from django.urls import path, include
+from django.urls import path
+from django.contrib.auth import views as auth_views
+from .views import password_reset_request
+from .views import update_password
+
 
 router = DefaultRouter()
 router.register(r'university-profiles', UniversityProfileViewSet)
@@ -167,4 +175,13 @@ urlpatterns = [
     path('api/lecturer-cv/by-user/', LecturerCVViewSet.as_view({'get': 'by_user'}), name='lecturer-cv-by-user'),
     path('lab-profiles/by-user/', get_lab_profile_by_user, name='get_lab_profile_by_user'),
 
-] 
+    path('contacts-with-chats/', views.MessageViewSet.contacts_with_chats, name='contacts_with_chats'),
+    
+    path('api/password_reset/', password_reset_request, name='password_reset_request'),
+    
+    path('reset/<uidb64>/<token>/', update_password, name='update_password'),
+    
+    #test
+    path('university/profiles/', views.university_profile_list, name='university_profile_list'),
+
+] + static(settings.STATIC_URL, document_root=settings.STATICFILES_DIRS[0]) 
