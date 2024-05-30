@@ -28,6 +28,7 @@ from django.urls import path
 from django.contrib.auth import views as auth_views
 from .views import password_reset_request
 from .views import update_password
+from .views import AdvertisementViewSet
 
 
 router = DefaultRouter()
@@ -49,6 +50,8 @@ router.register(r'messages', MessageViewSet, basename='message')
 router.register(r'lecturer-cv', LecturerCVViewSet, basename='LecturerCV')
 router.register(r'lab-profiles', LabProfileViewSet)
 router.register(r'lab-files', LabFileViewSet)
+router.register(r'advertisements', AdvertisementViewSet)
+
 urlpatterns = [
     path('', include(router.urls)),
     path('signup/', views.signup),
@@ -183,5 +186,6 @@ urlpatterns = [
     
     #test
     path('university/profiles/', views.university_profile_list, name='university_profile_list'),
+    path('recommendation/', views.recommend_universities_view, name='recommendation'),
 
 ] + static(settings.STATIC_URL, document_root=settings.STATICFILES_DIRS[0]) 

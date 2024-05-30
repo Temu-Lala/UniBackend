@@ -21,3 +21,8 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('UniApp.urls')),
 ]
+from django.contrib import admin
+
+admin.site.site_header = 'Uni-Connect Admin Login '                    # default: "Django Administration"
+admin.site.index_title = 'Uni-Connect Ethiopia'                 # default: "Site administration"
+admin.site.site_title = 'Uni-Connect Ethiopia'

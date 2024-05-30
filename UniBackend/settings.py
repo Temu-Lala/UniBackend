@@ -312,6 +312,8 @@ CORS_ALLOW_CREDENTIALS = True
 
 ROOT_URLCONF = 'UniBackend.urls'
 
+
+
 CORS_ALLOW_METHODS = (
     "DELETE",
     "GET",
@@ -329,6 +331,7 @@ CORS_ALLOW_HEADERS = (
     "x-csrftoken",
     "x-requested-with",
 )
+
 
 TEMPLATES = [
     {

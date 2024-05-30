@@ -574,3 +574,28 @@ class LecturerFollow(models.Model):
 
 
 
+
+
+class Advertisement(models.Model):
+    STATUS_CHOICES = (
+        ('opened', 'Opened'),
+        ('closed', 'Closed'),
+    )
+
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True)
+    image = models.ImageField(upload_to='static/advertisements/images/', blank=True, null=True)
+    video = models.FileField(upload_to='static/advertisements/videos/', blank=True, null=True)
+    call_to_action = models.CharField(max_length=255, blank=True, null=True)
+    target_audience = models.JSONField(blank=True, null=True)  # JSONField to store demographics and psychographics
+    budget = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    start_date = models.DateField(blank=True, null=True)
+    end_date = models.DateField(blank=True, null=True)
+    platform = models.CharField(max_length=255, blank=True, null=True)
+    keywords = models.CharField(max_length=255, blank=True, null=True)
+    landing_page_url = models.URLField(blank=True, null=True)
+    metrics_goals = models.JSONField(blank=True, null=True)  # JSONField to store objectives (e.g., clicks, conversions)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='opened')
+
+    def __str__(self):
+        return self.title

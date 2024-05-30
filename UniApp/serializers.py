@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import UniversityProfile,UniversityRating,LabProfile,Follow,CampusRating,CollegeRating,DepartmentRating,LabRating,Notification,BasePost,stortoken,IntegrationRequest, CampusProfile, CollegeProfile, DepartmentProfile, LecturerCV, GustUser, Reaction, Comment, ChatRoom, Message, CollegePost, CampusPost, UniversityPost, DepartmentPost,LecturerPost
+from .models import UniversityProfile,UniversityRating,Advertisement,LabProfile,Follow,CampusRating,CollegeRating,DepartmentRating,LabRating,Notification,BasePost,stortoken,IntegrationRequest, CampusProfile, CollegeProfile, DepartmentProfile, LecturerCV, GustUser, Reaction, Comment, ChatRoom, Message, CollegePost, CampusPost, UniversityPost, DepartmentPost,LecturerPost
 from rest_framework.authtoken.models import Token
 from rest_framework.serializers import ModelSerializer
 from django.contrib.auth.models import User
@@ -197,3 +197,19 @@ class LabProfileSerializer(serializers.ModelSerializer):
                 file_type = 'photo' if file_data.content_type.startswith('image') else 'video' if file_data.content_type.startswith('video') else 'document'
                 LabFile.objects.create(file=file_data, file_type=file_type, lab_profile=instance)
         return instance
+    
+    
+
+
+
+
+
+
+class AdvertisementSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Advertisement
+        fields = [
+            'id', 'title', 'description', 'image', 'video', 'call_to_action',
+            'target_audience', 'budget', 'start_date', 'end_date', 'platform',
+            'keywords', 'landing_page_url', 'metrics_goals', 'status'
+        ]

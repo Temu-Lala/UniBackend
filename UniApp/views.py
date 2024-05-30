@@ -68,7 +68,7 @@ class PasswordResetForm(forms.Form):
 
 
 class UniversityProfileViewSet(viewsets.ModelViewSet):
-    queryset = UniversityProfile.objects.all()
+    queryset = UniversityProfile.objects.filter(status='approved')
     serializer_class = UniversityProfileSerializer
     permission_classes = [IsAuthenticated]
 
@@ -76,7 +76,7 @@ class UniversityProfileViewSet(viewsets.ModelViewSet):
     def by_user(self, request):
         user = request.user
         try:
-            profile = UniversityProfile.objects.get(user=user)
+            profile = UniversityProfile.objects.get(user=user, status='approved')
             serializer = self.get_serializer(profile)
             return Response(serializer.data)
         except UniversityProfile.DoesNotExist:
@@ -2516,3 +2516,84 @@ def get_profile(request):
         return Response(serializer.data)
     else:
         return Response({'error': 'Profile not found'}, status=404)
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+import joblib
+import pandas as pd
+from .recommendation import universities_data, recommend_universities
+
+# Load the model and encoders
+model = joblib.load("ethiopian_university_recommender_model.joblib")
+categorical_transformer = joblib.load("categorical_transformer.joblib")
+label_encoder = joblib.load("label_encoder.joblib")
+
+@csrf_exempt
+def recommend_universities_view(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            gender = data.get('gender')
+            field_choices = data.get('field_choices')
+            health_condition = data.get('health_condition')
+            exam_result = data.get('exam_result')
+            
+            print(f"Received data: {data}")
+            
+            if not all([gender, field_choices, health_condition, exam_result]):
+                return JsonResponse({"error": "Missing parameters"}, status=400)
+
+            field_choices = field_choices.split(',')
+            exam_result = int(exam_result)
+        except (TypeError, ValueError, json.JSONDecodeError) as e:
+            print(f"Error in processing request data: {e}")
+            return JsonResponse({"error": str(e)}, status=400)
+
+        try:
+            student_data = pd.DataFrame({
+                "gender": [gender],
+                "health_condition": [health_condition],
+                "exam_result": [exam_result]
+            })
+            X_student = categorical_transformer.transform(student_data)
+
+            predicted_labels = model.predict_proba(X_student)[0]
+            sorted_indices = predicted_labels.argsort()[::-1]
+            sorted_probabilities = predicted_labels[sorted_indices]
+            sorted_universities = label_encoder.inverse_transform(sorted_indices)
+
+            matching_universities = [
+                name for name, data in universities_data.items()
+                if any(field in data["fields_offered"] for field in field_choices) and
+                   (health_condition in data["health_condition_support"])
+            ]
+
+            sorted_universities = [u for u in sorted_universities if u in matching_universities]
+
+            recommendations = []
+            for i, university in enumerate(sorted_universities):
+                probability = sorted_probabilities[i]
+                recommendations.append({"university": university, "probability": probability})
+
+            return JsonResponse({"recommendations": recommendations})
+        except Exception as e:
+            print(f"Error during recommendation processing: {e}")
+            return JsonResponse({"error": str(e)}, status=500)
+    else:
+        return JsonResponse({"error": "Invalid request method"}, status=405)
+    
+from .models import Advertisement
+from .serializers import AdvertisementSerializer
+    
+class AdvertisementViewSet(viewsets.ModelViewSet):
+    queryset = Advertisement.objects.all()
+    serializer_class = AdvertisementSerializer
