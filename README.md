@@ -1,6 +1,6 @@
 
 
-# University Social Media Platform
+# University Social Media Platform backend 
 
 Welcome to the University Social Media Platform! This repository contains the source code for a real-time social media application designed for university communities. The platform includes features such as a chatting system, news posts, notifications, promotions, and hierarchical organization of university entities.
 
